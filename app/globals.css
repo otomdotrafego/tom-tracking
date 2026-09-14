@@ -37,6 +37,7 @@ body {
   color: var(--text);
   font-family: Inter, system-ui, sans-serif;
   font-size: 15px;
+  zoom: 1.2;
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
