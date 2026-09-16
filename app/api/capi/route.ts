@@ -26,6 +26,7 @@ async function enviarEventoMeta(
         event_name: eventName,
         event_time: Math.floor(Date.now() / 1000),
         action_source: "other",
+        test_event_code: "TEST30215",
         user_data: {
           ph: userData.phone ? [userData.phone] : undefined,
           em: userData.email ? [userData.email] : undefined,
