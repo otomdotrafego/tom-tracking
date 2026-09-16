@@ -11,6 +11,14 @@ const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN!;
 
 type EventName = "Lead" | "Schedule" | "Purchase" | "QualifiedLead";
 
+function formatarTelefone(phone: string): string {
+  const soNumeros = phone.replace(/\D/g, "");
+  if (soNumeros.startsWith("55") && soNumeros.length >= 12) return soNumeros;
+  if (soNumeros.length === 11) return `55${soNumeros}`;
+  if (soNumeros.length === 10) return `55${soNumeros}`;
+  return soNumeros;
+}
+
 async function enviarEventoMeta(
   eventName: EventName,
   leadId: string,
@@ -20,6 +28,10 @@ async function enviarEventoMeta(
     fbclid?: string;
   }
 ) {
+  const phoneFormatted = userData.phone
+    ? formatarTelefone(userData.phone)
+    : undefined;
+
   const eventData = {
     data: [
       {
@@ -28,14 +40,18 @@ async function enviarEventoMeta(
         action_source: "other",
         test_event_code: "TEST49535",
         user_data: {
-          ph: userData.phone ? [userData.phone] : undefined,
+          ph: phoneFormatted ? [phoneFormatted] : undefined,
           em: userData.email ? [userData.email] : undefined,
           fbc: userData.fbclid
             ? `fb.1.${Date.now()}.${userData.fbclid}`
             : undefined,
+          client_ip_address: "127.0.0.1",
+          client_user_agent: "Mozilla/5.0",
         },
         custom_data: {
           lead_id: leadId,
+          currency: "BRL",
+          value: 0,
         },
       },
     ],
@@ -64,7 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Busca dados do lead no banco
     const { data: lead, error } = await supabase
       .from("leads")
       .select("*")
@@ -78,13 +93,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Envia evento pro Meta CAPI
     const resultado = await enviarEventoMeta(evento, leadId, {
       phone: lead.contato,
+      email: lead.email || undefined,
       fbclid: lead.fbclid,
     });
 
-    // Atualiza o lead com o evento enviado
     await supabase
       .from("leads")
       .update({
