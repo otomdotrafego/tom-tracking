@@ -19,6 +19,26 @@ const canalIcon: Record<string, string> = {
   "Meta Ads": "ti-brand-meta",
 };
 
+const etapaParaEvento: Record<string, string | null> = {
+  novo: "Lead",
+  em_conversa: "Lead",
+  qualificado: null,
+  agendado: "Schedule",
+  negociando: null,
+  venda_fechada: "Purchase",
+  nao_qualificado: null,
+};
+
+const etapas = [
+  { value: "novo", label: "Novo" },
+  { value: "em_conversa", label: "Em conversa" },
+  { value: "qualificado", label: "Qualificado" },
+  { value: "agendado", label: "Agendado" },
+  { value: "negociando", label: "Negociando" },
+  { value: "venda_fechada", label: "Venda fechada" },
+  { value: "nao_qualificado", label: "Não qualificado" },
+];
+
 function tempoRelativo(data: string) {
   const diff = Math.floor((Date.now() - new Date(data).getTime()) / 60000);
   if (diff < 60) return `${diff} min`;
@@ -38,29 +58,70 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [canalFiltro, setCanalFiltro] = useState("Todos");
   const [etapaFiltro, setEtapaFiltro] = useState("Todas as etapas");
+  const [atualizando, setAtualizando] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchLeads() {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) setLeads(data);
-      setLoading(false);
-    }
     fetchLeads();
   }, []);
 
+  async function fetchLeads() {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) setLeads(data);
+    setLoading(false);
+  }
+
+  async function atualizarEtapa(leadId: string, novaEtapa: string) {
+    setAtualizando(leadId);
+
+    // Atualiza no banco
+    await supabase
+      .from("leads")
+      .update({ etapa: novaEtapa })
+      .eq("id", leadId);
+
+    // Dispara evento pro Meta se tiver mapeado
+    const evento = etapaParaEvento[novaEtapa];
+    if (evento) {
+      try {
+        await fetch("/api/capi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leadId, evento }),
+        });
+        mostrarToast(`✓ Evento ${evento} enviado ao Meta`);
+      } catch {
+        mostrarToast("Erro ao enviar evento ao Meta");
+      }
+    }
+
+    // Atualiza lista local
+    setLeads((prev) =>
+      prev.map((l) => (l.id === leadId ? { ...l, etapa: novaEtapa } : l))
+    );
+    setAtualizando(null);
+  }
+
+  function mostrarToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }
+
   const leadsFiltrados = leads.filter((l) => {
     const porCanal = canalFiltro === "Todos" || l.canal === canalFiltro;
-    const porEtapa = etapaFiltro === "Todas as etapas" || l.etapa === etapaFiltro;
+    const porEtapa =
+      etapaFiltro === "Todas as etapas" || l.etapa === etapaFiltro;
     return porCanal && porEtapa;
   });
 
   const total = leads.length;
   const abertas = leads.filter((l) => l.etapa === "em_conversa").length;
   const vendas = leads.filter((l) => l.etapa === "venda_fechada").length;
-  const txConversao = total > 0 ? ((vendas / total) * 100).toFixed(1) : "0";
+  const txConversao =
+    total > 0 ? ((vendas / total) * 100).toFixed(1) : "0";
 
   const porCanal = ["WhatsApp", "Instagram", "Google", "Meta Ads"].map((c) => ({
     canal: c,
@@ -69,16 +130,29 @@ export default function Dashboard() {
   }));
   const maxCanal = Math.max(...porCanal.map((c) => c.valor), 1);
 
-  const etapas = [
-    { label: "Leads", key: null, valor: total },
-    { label: "Em conversa", key: "em_conversa", valor: leads.filter((l) => l.etapa === "em_conversa").length },
-    { label: "Qualificado", key: "qualificado", valor: leads.filter((l) => l.etapa === "qualificado").length },
-    { label: "Agendado", key: "agendado", valor: leads.filter((l) => l.etapa === "agendado").length },
-    { label: "Venda", key: "venda_fechada", valor: vendas },
+  const funilEtapas = [
+    { label: "Leads", valor: total },
+    { label: "Em conversa", valor: leads.filter((l) => l.etapa === "em_conversa").length },
+    { label: "Qualificado", valor: leads.filter((l) => l.etapa === "qualificado").length },
+    { label: "Agendado", valor: leads.filter((l) => l.etapa === "agendado").length },
+    { label: "Venda", valor: vendas },
   ];
 
   return (
-    <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, right: 24, zIndex: 999,
+          background: "var(--s3)", border: "1px solid var(--border2)",
+          color: "var(--text)", padding: "10px 16px", borderRadius: 8,
+          fontSize: 12, fontFamily: "monospace",
+        }}>
+          {toast}
+        </div>
+      )}
+
       {/* Topbar */}
       <div style={{
         padding: "13px 18px", borderBottom: "1px solid var(--border)",
@@ -168,7 +242,7 @@ export default function Dashboard() {
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text)" }}>Funil de conversão</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {etapas.map((f) => (
+              {funilEtapas.map((f) => (
                 <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ fontSize: 11, color: "var(--muted)", width: 70, flexShrink: 0 }}>{f.label}</div>
                   <div style={{ flex: 1, height: 19, background: "var(--s3)", borderRadius: 4, overflow: "hidden" }}>
@@ -198,16 +272,15 @@ export default function Dashboard() {
               style={{ padding: "4px 8px", borderRadius: 5, fontSize: 11, border: "1px solid var(--border2)", background: "var(--s2)", color: "var(--sub)" }}
             >
               <option>Todas as etapas</option>
-              <option value="em_conversa">Em conversa</option>
-              <option value="agendado">Agendado</option>
-              <option value="venda_fechada">Venda fechada</option>
-              <option value="nao_qualificado">Não qualificado</option>
+              {etapas.map((e) => (
+                <option key={e.value} value={e.value}>{e.label}</option>
+              ))}
             </select>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Lead", "Canal", "Campanha", "Etapa", "Recebido", ""].map((h) => (
+                {["Lead", "Canal", "Campanha", "Etapa", "Recebido", "Meta"].map((h) => (
                   <th key={h} style={{ padding: "7px 14px", fontSize: 10, color: "var(--muted)", textAlign: "left", fontWeight: 400, borderBottom: "1px solid var(--border)", letterSpacing: "0.3px" }}>{h}</th>
                 ))}
               </tr>
@@ -237,12 +310,28 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.campanha}</td>
-                    <td style={{ padding: "8px 14px", fontSize: 11, color: "var(--sub)" }}>{l.etapa?.replace(/_/g, " ")}</td>
+                    <td style={{ padding: "8px 14px" }}>
+                      <select
+                        value={l.etapa}
+                        disabled={atualizando === l.id}
+                        onChange={(e) => atualizarEtapa(l.id, e.target.value)}
+                        style={{
+                          padding: "3px 7px", borderRadius: 4, fontSize: 11,
+                          border: "1px solid var(--border)", background: "var(--s2)",
+                          color: "var(--text)", cursor: "pointer",
+                          opacity: atualizando === l.id ? 0.5 : 1,
+                        }}
+                      >
+                        {etapas.map((e) => (
+                          <option key={e.value} value={e.value}>{e.label}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{tempoRelativo(l.created_at)}</td>
                     <td style={{ padding: "8px 14px" }}>
-                      <button style={{ padding: "3px 7px", borderRadius: 4, fontSize: 10.5, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer" }}>
-                        Jornada
-                      </button>
+                      <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "monospace" }}>
+                        {etapaParaEvento[l.etapa] ? `→ ${etapaParaEvento[l.etapa]}` : "—"}
+                      </span>
                     </td>
                   </tr>
                 ))
