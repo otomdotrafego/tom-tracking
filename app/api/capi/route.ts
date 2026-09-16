@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "crypto";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,14 +9,18 @@ const supabase = createClient(
 
 const PIXEL_ID = process.env.META_PIXEL_ID!;
 const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN!;
+const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "";
 
 type EventName = "Lead" | "Schedule" | "Purchase" | "QualifiedLead";
+
+function hash(value: string): string {
+  return createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
+}
 
 function formatarTelefone(phone: string): string {
   const soNumeros = phone.replace(/\D/g, "");
   if (soNumeros.startsWith("55") && soNumeros.length >= 12) return soNumeros;
-  if (soNumeros.length === 11) return `55${soNumeros}`;
-  if (soNumeros.length === 10) return `55${soNumeros}`;
+  if (soNumeros.length === 11 || soNumeros.length === 10) return `55${soNumeros}`;
   return soNumeros;
 }
 
@@ -25,29 +30,47 @@ async function enviarEventoMeta(
   userData: {
     phone?: string;
     email?: string;
+    nome?: string;
     fbclid?: string;
+    ip?: string;
+    userAgent?: string;
   }
 ) {
   const phoneFormatted = userData.phone
     ? formatarTelefone(userData.phone)
-    : undefined;
+    : null;
 
-  const eventData = {
+  const userDataPayload: Record<string, unknown> = {
+    client_ip_address: userData.ip || "177.100.0.1",
+    client_user_agent: userData.userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  };
+
+  if (phoneFormatted) {
+    userDataPayload.ph = [hash(phoneFormatted)];
+  }
+
+  if (userData.email) {
+    userDataPayload.em = [hash(userData.email)];
+  }
+
+  if (userData.nome) {
+    const primeiroNome = userData.nome.split(" ")[0];
+    userDataPayload.fn = [hash(primeiroNome)];
+  }
+
+  if (userData.fbclid) {
+    userDataPayload.fbc = `fb.1.${Date.now()}.${userData.fbclid}`;
+  }
+
+  const eventPayload: Record<string, unknown> = {
     data: [
       {
         event_name: eventName,
         event_time: Math.floor(Date.now() / 1000),
-        action_source: "other",
-        test_event_code: "TEST49535",
-        user_data: {
-          ph: phoneFormatted ? [phoneFormatted] : undefined,
-          em: userData.email ? [userData.email] : undefined,
-          fbc: userData.fbclid
-            ? `fb.1.${Date.now()}.${userData.fbclid}`
-            : undefined,
-          client_ip_address: "127.0.0.1",
-          client_user_agent: "Mozilla/5.0",
-        },
+        action_source: "website",
+        event_source_url: "https://tom-tracking.vercel.app",
+        event_id: `${leadId}_${eventName}_${Date.now()}`,
+        user_data: userDataPayload,
         custom_data: {
           lead_id: leadId,
           currency: "BRL",
@@ -57,12 +80,17 @@ async function enviarEventoMeta(
     ],
   };
 
+  // test_event_code na RAIZ do payload
+  if (TEST_EVENT_CODE) {
+    eventPayload.test_event_code = TEST_EVENT_CODE;
+  }
+
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
+    `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(eventData),
+      body: JSON.stringify(eventPayload),
     }
   );
 
@@ -93,10 +121,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const ip = request.headers.get("x-forwarded-for") || "177.100.0.1";
+    const userAgent = request.headers.get("user-agent") || "Mozilla/5.0";
+
     const resultado = await enviarEventoMeta(evento, leadId, {
       phone: lead.contato,
       email: lead.email || undefined,
+      nome: lead.nome,
       fbclid: lead.fbclid,
+      ip,
+      userAgent,
     });
 
     await supabase
