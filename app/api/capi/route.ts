@@ -67,7 +67,7 @@ async function enviarEventoMeta(
       {
         event_name: eventName,
         event_time: Math.floor(Date.now() / 1000),
-        action_source: "website",
+        action_source: "other",
         event_source_url: "https://tom-tracking.vercel.app",
         event_id: `${leadId}_${eventName}_${Date.now()}`,
         user_data: userDataPayload,
