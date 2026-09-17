@@ -1,39 +1,48 @@
 "use client";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-type NavItem = { icon: string; label: string };
+type NavItem = { icon: string; label: string; href: string };
 type NavGroup = { section: string; items: NavItem[] };
 
 const navItems: NavGroup[] = [
   {
     section: "Visão geral",
     items: [
-      { icon: "ti-layout-dashboard", label: "Painel" },
-      { icon: "ti-users", label: "Leads" },
-      { icon: "ti-route", label: "Jornadas" },
-      { icon: "ti-chart-bar", label: "Relatórios" },
+      { icon: "ti-layout-dashboard", label: "Painel", href: "/" },
+      { icon: "ti-users", label: "Leads", href: "/leads" },
+      { icon: "ti-route", label: "Jornadas", href: "/jornadas" },
+      { icon: "ti-chart-bar", label: "Relatórios", href: "/relatorios" },
     ],
   },
   {
     section: "Canais",
     items: [
-      { icon: "ti-brand-whatsapp", label: "WhatsApp" },
-      { icon: "ti-brand-instagram", label: "Instagram" },
-      { icon: "ti-brand-google", label: "Google Ads" },
-      { icon: "ti-brand-meta", label: "Meta Ads" },
+      { icon: "ti-brand-whatsapp", label: "WhatsApp", href: "/whatsapp" },
+      { icon: "ti-brand-instagram", label: "Instagram", href: "/instagram" },
+      { icon: "ti-brand-google", label: "Google Ads", href: "/google-ads" },
+      { icon: "ti-brand-meta", label: "Meta Ads", href: "/meta-ads" },
     ],
   },
   {
     section: "Sistema",
     items: [
-      { icon: "ti-plug", label: "Integrações" },
-      { icon: "ti-webhook", label: "Webhooks" },
-      { icon: "ti-settings", label: "Configurações" },
+      { icon: "ti-plug", label: "Integrações", href: "/integracoes" },
+      { icon: "ti-webhook", label: "Webhooks", href: "/webhooks" },
+      { icon: "ti-settings", label: "Configurações", href: "/configuracoes" },
     ],
   },
 ];
 
-function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
+function NavLink({
+  item,
+  active,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <div
       onClick={onClick}
@@ -57,7 +66,8 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
 
 export default function Sidebar() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [active, setActive] = useState("Painel");
+  const pathname = usePathname();
+  const router = useRouter();
 
   function toggleTheme(t: "dark" | "light") {
     setTheme(t);
@@ -66,6 +76,11 @@ export default function Sidebar() {
     } else {
       document.documentElement.classList.remove("light");
     }
+  }
+
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
   }
 
   return (
@@ -150,8 +165,8 @@ export default function Sidebar() {
               <NavLink
                 key={item.label}
                 item={item}
-                active={active === item.label}
-                onClick={() => setActive(item.label)}
+                active={isActive(item.href)}
+                onClick={() => router.push(item.href)}
               />
             ))}
           </div>
