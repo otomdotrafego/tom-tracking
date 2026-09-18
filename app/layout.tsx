@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import Sidebar from "@/components/Sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,7 +23,15 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body
+        className={inter.className}
+        style={{ display: "flex", height: "100vh", overflow: "hidden" }}
+      >
+        <Sidebar />
+        <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {children}
+        </main>
+      </body>
     </html>
   );
 }
