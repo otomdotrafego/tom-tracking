@@ -36,17 +36,9 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, system-ui, sans-serif;
-  font-size: 15px;
-  zoom: 1.2;
+  font-size: 14px;
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
-
-/* Mobile: compensar topbar fixa */
-@media (max-width: 767px) {
-  body > div {
-    padding-top: 48px;
-  }
-}
