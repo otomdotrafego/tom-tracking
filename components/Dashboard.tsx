@@ -61,9 +61,7 @@ export default function Dashboard() {
   const [atualizando, setAtualizando] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchLeads();
-  }, []);
+  useEffect(() => { fetchLeads(); }, []);
 
   async function fetchLeads() {
     const { data, error } = await supabase
@@ -76,14 +74,7 @@ export default function Dashboard() {
 
   async function atualizarEtapa(leadId: string, novaEtapa: string) {
     setAtualizando(leadId);
-
-    // Atualiza no banco
-    await supabase
-      .from("leads")
-      .update({ etapa: novaEtapa })
-      .eq("id", leadId);
-
-    // Dispara evento pro Meta se tiver mapeado
+    await supabase.from("leads").update({ etapa: novaEtapa }).eq("id", leadId);
     const evento = etapaParaEvento[novaEtapa];
     if (evento) {
       try {
@@ -97,11 +88,7 @@ export default function Dashboard() {
         mostrarToast("Erro ao enviar evento ao Meta");
       }
     }
-
-    // Atualiza lista local
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, etapa: novaEtapa } : l))
-    );
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, etapa: novaEtapa } : l)));
     setAtualizando(null);
   }
 
@@ -112,20 +99,17 @@ export default function Dashboard() {
 
   const leadsFiltrados = leads.filter((l) => {
     const porCanal = canalFiltro === "Todos" || l.canal === canalFiltro;
-    const porEtapa =
-      etapaFiltro === "Todas as etapas" || l.etapa === etapaFiltro;
+    const porEtapa = etapaFiltro === "Todas as etapas" || l.etapa === etapaFiltro;
     return porCanal && porEtapa;
   });
 
   const total = leads.length;
   const abertas = leads.filter((l) => l.etapa === "em_conversa").length;
   const vendas = leads.filter((l) => l.etapa === "venda_fechada").length;
-  const txConversao =
-    total > 0 ? ((vendas / total) * 100).toFixed(1) : "0";
+  const txConversao = total > 0 ? ((vendas / total) * 100).toFixed(1) : "0";
 
   const porCanal = ["WhatsApp", "Instagram", "Google", "Meta Ads"].map((c) => ({
-    canal: c,
-    icon: canalIcon[c],
+    canal: c, icon: canalIcon[c],
     valor: leads.filter((l) => l.canal === c).length,
   }));
   const maxCanal = Math.max(...porCanal.map((c) => c.valor), 1);
@@ -139,7 +123,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
 
       {/* Toast */}
       {toast && (
@@ -148,9 +132,7 @@ export default function Dashboard() {
           background: "var(--s3)", border: "1px solid var(--border2)",
           color: "var(--text)", padding: "10px 16px", borderRadius: 8,
           fontSize: 12, fontFamily: "monospace",
-        }}>
-          {toast}
-        </div>
+        }}>{toast}</div>
       )}
 
       {/* Topbar */}
@@ -158,6 +140,7 @@ export default function Dashboard() {
         padding: "13px 18px", borderBottom: "1px solid var(--border)",
         background: "var(--s1)", display: "flex", alignItems: "center",
         justifyContent: "space-between", flexShrink: 0,
+        position: "sticky", top: 0, zIndex: 10,
       }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: -0.2, color: "var(--text)" }}>
@@ -195,7 +178,7 @@ export default function Dashboard() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+      <div style={{ flex: 1, padding: "16px 18px" }}>
 
         {/* Metrics */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 9, marginBottom: 14 }}>
@@ -218,9 +201,7 @@ export default function Dashboard() {
         {/* Channels + Funnel */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 14 }}>
           <div style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text)" }}>Leads por canal</span>
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", marginBottom: 12 }}>Leads por canal</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {porCanal.map((c) => (
                 <div key={c.canal} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -238,9 +219,7 @@ export default function Dashboard() {
           </div>
 
           <div style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text)" }}>Funil de conversão</span>
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", marginBottom: 12 }}>Funil de conversão</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               {funilEtapas.map((f) => (
                 <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -272,9 +251,7 @@ export default function Dashboard() {
               style={{ padding: "4px 8px", borderRadius: 5, fontSize: 11, border: "1px solid var(--border2)", background: "var(--s2)", color: "var(--sub)" }}
             >
               <option>Todas as etapas</option>
-              {etapas.map((e) => (
-                <option key={e.value} value={e.value}>{e.label}</option>
-              ))}
+              {etapas.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
             </select>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -290,56 +267,47 @@ export default function Dashboard() {
                 <tr><td colSpan={6} style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>Carregando...</td></tr>
               ) : leadsFiltrados.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>Nenhum lead encontrado</td></tr>
-              ) : (
-                leadsFiltrados.map((l) => (
-                  <tr key={l.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "8px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--s4)", border: "1px solid var(--border2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 500, color: "var(--sub)", flexShrink: 0 }}>
-                          {l.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11.5, color: "var(--text)" }}>{l.nome}</div>
-                          <div style={{ fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.contato}</div>
-                        </div>
+              ) : leadsFiltrados.map((l) => (
+                <tr key={l.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "8px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--s4)", border: "1px solid var(--border2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 500, color: "var(--sub)", flexShrink: 0 }}>
+                        {l.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                       </div>
-                    </td>
-                    <td style={{ padding: "8px 14px" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 3, fontSize: 10.5, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
-                        <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 10 }} /> {l.canal}
-                      </span>
-                    </td>
-                    <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.campanha}</td>
-                    <td style={{ padding: "8px 14px" }}>
-                      <select
-                        value={l.etapa}
-                        disabled={atualizando === l.id}
-                        onChange={(e) => atualizarEtapa(l.id, e.target.value)}
-                        style={{
-                          padding: "3px 7px", borderRadius: 4, fontSize: 11,
-                          border: "1px solid var(--border)", background: "var(--s2)",
-                          color: "var(--text)", cursor: "pointer",
-                          opacity: atualizando === l.id ? 0.5 : 1,
-                        }}
-                      >
-                        {etapas.map((e) => (
-                          <option key={e.value} value={e.value}>{e.label}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{tempoRelativo(l.created_at)}</td>
-                    <td style={{ padding: "8px 14px" }}>
-                      <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "monospace" }}>
-                        {etapaParaEvento[l.etapa] ? `→ ${etapaParaEvento[l.etapa]}` : "—"}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
+                      <div>
+                        <div style={{ fontSize: 11.5, color: "var(--text)" }}>{l.nome}</div>
+                        <div style={{ fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.contato}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: "8px 14px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 3, fontSize: 10.5, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
+                      <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 10 }} /> {l.canal}
+                    </span>
+                  </td>
+                  <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.campanha}</td>
+                  <td style={{ padding: "8px 14px" }}>
+                    <select
+                      value={l.etapa}
+                      disabled={atualizando === l.id}
+                      onChange={(e) => atualizarEtapa(l.id, e.target.value)}
+                      style={{ padding: "3px 7px", borderRadius: 4, fontSize: 11, border: "1px solid var(--border)", background: "var(--s2)", color: "var(--text)", cursor: "pointer", opacity: atualizando === l.id ? 0.5 : 1 }}
+                    >
+                      {etapas.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{tempoRelativo(l.created_at)}</td>
+                  <td style={{ padding: "8px 14px" }}>
+                    <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "monospace" }}>
+                      {etapaParaEvento[l.etapa] ? `→ ${etapaParaEvento[l.etapa]}` : "—"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

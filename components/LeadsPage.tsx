@@ -143,7 +143,7 @@ export default function LeadsPage() {
   const totalPaginas = Math.ceil(total / POR_PAGINA);
 
   return (
-    <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+    <main style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
 
       {/* Toast */}
       {toast && (
@@ -241,7 +241,7 @@ export default function LeadsPage() {
       </div>
 
       {/* Tabela */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+      <div style={{ flex: 1, padding: "16px 18px" }}>
         <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 7, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
