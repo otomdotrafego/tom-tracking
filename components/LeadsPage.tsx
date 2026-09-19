@@ -143,7 +143,7 @@ export default function LeadsPage() {
   const totalPaginas = Math.ceil(total / POR_PAGINA);
 
   return (
-    <main style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+    <main style={{ display: "flex", flexDirection: "column" }}>
 
       {/* Toast */}
       {toast && (

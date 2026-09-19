@@ -28,10 +28,8 @@ export default function RootLayout({
         <div
           style={{
             flex: 1,
-            display: "flex",
-            flexDirection: "column",
             overflowY: "auto",
-            height: "100vh",
+            overflowX: "hidden",
           }}
         >
           {children}

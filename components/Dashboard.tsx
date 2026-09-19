@@ -123,7 +123,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column" }}>
 
       {/* Toast */}
       {toast && (
