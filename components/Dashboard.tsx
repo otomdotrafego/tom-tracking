@@ -281,7 +281,7 @@ export default function Dashboard() {
                     ? ["Lead", "Etapa", "Recebido"]
                     : ["Lead", "Canal", "Campanha", "Etapa", "Recebido", "Meta"]
                   ).map((h) => (
-                    <th key={h} style={{ padding: "8px 16px", fontSize: 16, color: "var(--muted)", textAlign: "left", fontWeight: 400, borderBottom: "1px solid var(--border)", letterSpacing: "0.3px" }}>{h}</th>
+                    <th key={h} style={{ padding: "8px 16px", fontSize: 11, color: "var(--muted)", textAlign: "left", fontWeight: 400, borderBottom: "1px solid var(--border)", letterSpacing: "0.3px" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -301,15 +301,15 @@ export default function Dashboard() {
                           {l.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                         </div>
                         <div>
-                          <div style={{ fontSize: 16, color: "var(--text)" }}>{l.nome}</div>
-                          <div style={{ fontSize: 16, fontFamily: "monospace", color: "var(--muted)" }}>{l.contato}</div>
+                          <div style={{ fontSize: 13, color: "var(--text)" }}>{l.nome}</div>
+                          <div style={{ fontSize: 12, fontFamily: "monospace", color: "var(--muted)" }}>{l.contato}</div>
                         </div>
                       </div>
                     </td>
                     {!isMobile && (
                       <>
                         <td style={{ padding: "9px 16px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 4, fontSize: 16, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 4, fontSize: 12, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
                             <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 11 }} /> {l.canal}
                           </span>
                         </td>
@@ -329,7 +329,7 @@ export default function Dashboard() {
                     <td style={{ padding: "9px 16px", fontSize: 14, fontFamily: "monospace", color: "var(--muted)" }}>{tempoRelativo(l.created_at)}</td>
                     {!isMobile && (
                       <td style={{ padding: "9px 16px" }}>
-                        <span style={{ fontSize: 16, color: "var(--muted)", fontFamily: "monospace" }}>
+                        <span style={{ fontSize: 12, color: "var(--muted)", fontFamily: "monospace" }}>
                           {etapaParaEvento[l.etapa] ? `→ ${etapaParaEvento[l.etapa]}` : "—"}
                         </span>
                       </td>
