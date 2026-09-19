@@ -40,13 +40,13 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       onClick={onClick}
       style={{
         display: "flex", alignItems: "center", gap: 8,
-        padding: "6px 8px", borderRadius: 5, cursor: "pointer",
-        fontSize: 12,
+        padding: "8px 10px", borderRadius: 5, cursor: "pointer",
+        fontSize: 15,
         background: active ? "var(--s3)" : "transparent",
         color: active ? "var(--text)" : "var(--muted)",
       }}
     >
-      <i className={`ti ${item.icon}`} style={{ fontSize: 14 }} />
+      <i className={`ti ${item.icon}`} style={{ fontSize: 17 }} />
       {item.label}
     </div>
   );
@@ -93,7 +93,7 @@ export default function Sidebar() {
   const sidebarContent = (
     <aside
       style={{
-        width: 188, minWidth: 188,
+        width: 210, minWidth: 210,
         background: "var(--s1)",
         borderRight: "1px solid var(--border)",
         display: "flex", flexDirection: "column",
@@ -102,12 +102,12 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div style={{
-        padding: "15px", borderBottom: "1px solid var(--border)",
+        padding: "18px", borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
-            width: 24, height: 24, background: "var(--s4)",
+            width: 28, height: 28, background: "var(--s4)",
             border: "1px solid var(--border2)", borderRadius: 5,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -116,7 +116,7 @@ export default function Sidebar() {
               <path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11" />
             </svg>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", letterSpacing: -0.2 }}>
+          <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text)", letterSpacing: -0.2 }}>
             Tom <span style={{ color: "var(--muted)", fontWeight: 400 }}>Tracking</span>
           </span>
         </div>
@@ -132,10 +132,10 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav style={{ padding: "8px 6px", flex: 1, overflowY: "auto" }}>
+      <nav style={{ padding: "10px 8px", flex: 1, overflowY: "auto" }}>
         {navItems.map((group) => (
           <div key={group.section}>
-            <div style={{ fontSize: 10, color: "var(--muted)", padding: "10px 8px 3px", letterSpacing: "0.5px" }}>
+            <div style={{ fontSize: 15, color: "var(--muted)", padding: "10px 8px 3px", letterSpacing: "0.5px" }}>
               {group.section}
             </div>
             {group.items.map((item) => (
@@ -155,7 +155,7 @@ export default function Sidebar() {
         padding: 11, borderTop: "1px solid var(--border)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <span style={{ fontSize: 11, color: "var(--muted)" }}>Tema</span>
+        <span style={{ fontSize: 16, color: "var(--muted)" }}>Tema</span>
         <div style={{
           display: "flex", background: "var(--s2)",
           border: "1px solid var(--border)", borderRadius: 20, padding: 2, gap: 1,
@@ -163,24 +163,24 @@ export default function Sidebar() {
           <button
             onClick={() => toggleTheme("dark")}
             style={{
-              border: "none", padding: "3px 7px", borderRadius: 16, fontSize: 11,
+              border: "none", padding: "3px 7px", borderRadius: 16, fontSize: 16,
               cursor: "pointer",
               background: theme === "dark" ? "var(--s4)" : "transparent",
               color: theme === "dark" ? "var(--text)" : "var(--muted)",
             }}
           >
-            <i className="ti ti-moon" style={{ fontSize: 10 }} />
+            <i className="ti ti-moon" style={{ fontSize: 15 }} />
           </button>
           <button
             onClick={() => toggleTheme("light")}
             style={{
-              border: "none", padding: "3px 7px", borderRadius: 16, fontSize: 11,
+              border: "none", padding: "3px 7px", borderRadius: 16, fontSize: 16,
               cursor: "pointer",
               background: theme === "light" ? "var(--s4)" : "transparent",
               color: theme === "light" ? "var(--text)" : "var(--muted)",
             }}
           >
-            <i className="ti ti-sun" style={{ fontSize: 10 }} />
+            <i className="ti ti-sun" style={{ fontSize: 15 }} />
           </button>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function Sidebar() {
           >
             <i className="ti ti-menu-2" />
           </button>
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>
+          <span style={{ fontSize: 16, fontWeight: 500, color: "var(--text)" }}>
             Tom <span style={{ color: "var(--muted)", fontWeight: 400 }}>Tracking</span>
           </span>
           <div style={{ width: 28 }} />
