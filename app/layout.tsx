@@ -23,12 +23,17 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
         />
       </head>
-      <body
-        className={inter.className}
-        style={{ display: "flex", height: "100vh", overflow: "hidden" }}
-      >
+      <body className={inter.className}>
         <Sidebar />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflowY: "auto",
+            height: "100vh",
+          }}
+        >
           {children}
         </div>
       </body>

@@ -32,12 +32,24 @@
   padding: 0;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, system-ui, sans-serif;
   font-size: 15px;
   zoom: 1.2;
+  display: flex;
+}
+
+#__next, [data-nextjs-scroll-focus-boundary] {
+  display: flex;
+  flex: 1;
+  height: 100%;
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
