@@ -53,6 +53,17 @@ const card: React.CSSProperties = {
   padding: 14,
 };
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
+
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +71,7 @@ export default function Dashboard() {
   const [etapaFiltro, setEtapaFiltro] = useState("Todas as etapas");
   const [atualizando, setAtualizando] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => { fetchLeads(); }, []);
 
@@ -123,7 +135,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
 
       {/* Toast */}
       {toast && (
@@ -137,13 +149,16 @@ export default function Dashboard() {
 
       {/* Topbar */}
       <div style={{
-        padding: "13px 18px", borderBottom: "1px solid var(--border)",
-        background: "var(--s1)", display: "flex", alignItems: "center",
-        justifyContent: "space-between", flexShrink: 0,
-        
+        padding: isMobile ? "12px 14px" : "13px 18px",
+        borderBottom: "1px solid var(--border)",
+        background: "var(--s1)",
+        display: "flex", alignItems: "center",
+        justifyContent: "space-between",
+        flexShrink: 0,
+        marginTop: isMobile ? 48 : 0,
       }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: -0.2, color: "var(--text)" }}>
+          <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 500, letterSpacing: -0.2, color: "var(--text)" }}>
             Painel de rastreamento
           </div>
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>
@@ -151,14 +166,16 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 5, fontSize: 11,
-            color: "var(--sub)", padding: "4px 9px", borderRadius: 20,
-            border: "1px solid var(--border)",
-          }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--sub)", display: "inline-block" }} />
-            Ao vivo
-          </div>
+          {!isMobile && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 5, fontSize: 11,
+              color: "var(--sub)", padding: "4px 9px", borderRadius: 20,
+              border: "1px solid var(--border)",
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--sub)", display: "inline-block" }} />
+              Ao vivo
+            </div>
+          )}
           <select
             value={canalFiltro}
             onChange={(e) => setCanalFiltro(e.target.value)}
@@ -178,10 +195,14 @@ export default function Dashboard() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: "16px 18px" }}>
+      <div style={{ flex: 1, padding: isMobile ? "12px 14px" : "16px 18px" }}>
 
-        {/* Metrics */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 9, marginBottom: 14 }}>
+        {/* Metrics — 2 colunas no mobile, 4 no desktop */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)",
+          gap: 9, marginBottom: 14,
+        }}>
           {[
             { label: "Total de leads", value: total },
             { label: "Em conversa", value: abertas },
@@ -198,8 +219,12 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Channels + Funnel */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, marginBottom: 14 }}>
+        {/* Channels + Funnel — empilhados no mobile */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+          gap: 9, marginBottom: 14,
+        }}>
           <div style={card}>
             <div style={{ fontSize: 12, fontWeight: 500, color: "var(--text)", marginBottom: 12 }}>Leads por canal</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -241,7 +266,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Leads table */}
+        {/* Leads table — scroll horizontal só na tabela no mobile */}
         <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 7, overflow: "hidden" }}>
           <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text)" }}>Leads recentes</span>
@@ -254,58 +279,70 @@ export default function Dashboard() {
               {etapas.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
             </select>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {["Lead", "Canal", "Campanha", "Etapa", "Recebido", "Meta"].map((h) => (
-                  <th key={h} style={{ padding: "7px 14px", fontSize: 10, color: "var(--muted)", textAlign: "left", fontWeight: 400, borderBottom: "1px solid var(--border)", letterSpacing: "0.3px" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>Carregando...</td></tr>
-              ) : leadsFiltrados.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>Nenhum lead encontrado</td></tr>
-              ) : leadsFiltrados.map((l) => (
-                <tr key={l.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "8px 14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--s4)", border: "1px solid var(--border2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 500, color: "var(--sub)", flexShrink: 0 }}>
-                        {l.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 11.5, color: "var(--text)" }}>{l.nome}</div>
-                        <div style={{ fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.contato}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: "8px 14px" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 3, fontSize: 10.5, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
-                      <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 10 }} /> {l.canal}
-                    </span>
-                  </td>
-                  <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.campanha}</td>
-                  <td style={{ padding: "8px 14px" }}>
-                    <select
-                      value={l.etapa}
-                      disabled={atualizando === l.id}
-                      onChange={(e) => atualizarEtapa(l.id, e.target.value)}
-                      style={{ padding: "3px 7px", borderRadius: 4, fontSize: 11, border: "1px solid var(--border)", background: "var(--s2)", color: "var(--text)", cursor: "pointer", opacity: atualizando === l.id ? 0.5 : 1 }}
-                    >
-                      {etapas.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-                    </select>
-                  </td>
-                  <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{tempoRelativo(l.created_at)}</td>
-                  <td style={{ padding: "8px 14px" }}>
-                    <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "monospace" }}>
-                      {etapaParaEvento[l.etapa] ? `→ ${etapaParaEvento[l.etapa]}` : "—"}
-                    </span>
-                  </td>
+          {/* Scroll só na tabela, não na página toda */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: isMobile ? 500 : "auto" }}>
+              <thead>
+                <tr>
+                  {(isMobile
+                    ? ["Lead", "Etapa", "Recebido"]
+                    : ["Lead", "Canal", "Campanha", "Etapa", "Recebido", "Meta"]
+                  ).map((h) => (
+                    <th key={h} style={{ padding: "7px 14px", fontSize: 10, color: "var(--muted)", textAlign: "left", fontWeight: 400, borderBottom: "1px solid var(--border)", letterSpacing: "0.3px" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={6} style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>Carregando...</td></tr>
+                ) : leadsFiltrados.length === 0 ? (
+                  <tr><td colSpan={6} style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 12 }}>Nenhum lead encontrado</td></tr>
+                ) : leadsFiltrados.map((l) => (
+                  <tr key={l.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "8px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--s4)", border: "1px solid var(--border2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8.5, fontWeight: 500, color: "var(--sub)", flexShrink: 0 }}>
+                          {l.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11.5, color: "var(--text)" }}>{l.nome}</div>
+                          <div style={{ fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.contato}</div>
+                        </div>
+                      </div>
+                    </td>
+                    {!isMobile && (
+                      <>
+                        <td style={{ padding: "8px 14px" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 3, fontSize: 10.5, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
+                            <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 10 }} /> {l.canal}
+                          </span>
+                        </td>
+                        <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{l.campanha}</td>
+                      </>
+                    )}
+                    <td style={{ padding: "8px 14px" }}>
+                      <select
+                        value={l.etapa}
+                        disabled={atualizando === l.id}
+                        onChange={(e) => atualizarEtapa(l.id, e.target.value)}
+                        style={{ padding: "3px 7px", borderRadius: 4, fontSize: 11, border: "1px solid var(--border)", background: "var(--s2)", color: "var(--text)", cursor: "pointer", opacity: atualizando === l.id ? 0.5 : 1 }}
+                      >
+                        {etapas.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding: "8px 14px", fontSize: 10.5, fontFamily: "monospace", color: "var(--muted)" }}>{tempoRelativo(l.created_at)}</td>
+                    {!isMobile && (
+                      <td style={{ padding: "8px 14px" }}>
+                        <span style={{ fontSize: 10, color: "var(--muted)", fontFamily: "monospace" }}>
+                          {etapaParaEvento[l.etapa] ? `→ ${etapaParaEvento[l.etapa]}` : "—"}
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
