@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Lead = {
@@ -85,6 +86,7 @@ export default function LeadsPage() {
   const [filtroCanal, setFiltroCanal] = useState("");
   const [pagina, setPagina] = useState(1);
   const [leadAberto, setLeadAberto] = useState<Lead | null>(null);
+  const router = useRouter();
   const [atualizando, setAtualizando] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -343,8 +345,14 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Seta */}
-                    <td style={{ padding: "10px 16px" }} onClick={() => setLeadAberto(l)}>
-                      <i className="ti ti-chevron-right" style={{ fontSize: 15, color: "var(--muted)" }} />
+                    <td style={{ padding: "10px 16px" }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); router.push(`/jornadas/${l.id}`); }}
+                        title="Ver jornada"
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
+                      >
+                        <i className="ti ti-route" style={{ fontSize: 14 }} />
+                      </button>
                     </td>
                   </tr>
                 ))
