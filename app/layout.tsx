@@ -28,9 +28,9 @@ export default function RootLayout({
         style={{ display: "flex", height: "100vh", overflow: "hidden" }}
       >
         <Sidebar />
-        <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
           {children}
-        </main>
+        </div>
       </body>
     </html>
   );
