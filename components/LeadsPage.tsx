@@ -151,7 +151,7 @@ export default function LeadsPage() {
           position: "fixed", bottom: 24, right: 24, zIndex: 999,
           background: "var(--s3)", border: "1px solid var(--border2)",
           color: "var(--text)", padding: "10px 16px", borderRadius: 8,
-          fontSize: 16, fontFamily: "monospace",
+          fontSize: 15, fontFamily: "monospace",
         }}>
           {toast}
         </div>
@@ -164,10 +164,10 @@ export default function LeadsPage() {
         justifyContent: "space-between", flexShrink: 0,
       }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 500, letterSpacing: -0.2, color: "var(--text)" }}>
+          <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: -0.2, color: "var(--text)" }}>
             Leads
           </div>
-          <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 1 }}>
+          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 1 }}>
             {total} lead{total !== 1 ? "s" : ""} no total
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function LeadsPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {/* Busca */}
           <div style={{ position: "relative" }}>
-            <i className="ti ti-search" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "var(--muted)" }} />
+            <i className="ti ti-search" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--muted)" }} />
             <input
               type="text"
               placeholder="Buscar nome, telefone..."
@@ -184,7 +184,7 @@ export default function LeadsPage() {
               onChange={(e) => setBusca(e.target.value)}
               style={{
                 paddingLeft: 26, paddingRight: 10, paddingTop: 5, paddingBottom: 5,
-                borderRadius: 7, fontSize: 14, border: "1px solid var(--border2)",
+                borderRadius: 7, fontSize: 13, border: "1px solid var(--border2)",
                 background: "var(--s2)", color: "var(--text)", width: 200,
                 outline: "none",
               }}
@@ -196,7 +196,7 @@ export default function LeadsPage() {
             value={filtroEtapa}
             onChange={(e) => setFiltroEtapa(e.target.value)}
             style={{
-              padding: "5px 10px", borderRadius: 7, fontSize: 14,
+              padding: "5px 10px", borderRadius: 7, fontSize: 13,
               border: "1px solid var(--border2)", background: "var(--s2)",
               color: "var(--sub)", cursor: "pointer",
             }}
@@ -212,7 +212,7 @@ export default function LeadsPage() {
             value={filtroCanal}
             onChange={(e) => setFiltroCanal(e.target.value)}
             style={{
-              padding: "5px 10px", borderRadius: 7, fontSize: 14,
+              padding: "5px 10px", borderRadius: 7, fontSize: 13,
               border: "1px solid var(--border2)", background: "var(--s2)",
               color: "var(--sub)", cursor: "pointer",
             }}
@@ -229,7 +229,7 @@ export default function LeadsPage() {
             <button
               onClick={() => { setBusca(""); setFiltroEtapa(""); setFiltroCanal(""); }}
               style={{
-                padding: "5px 10px", borderRadius: 7, fontSize: 14,
+                padding: "5px 10px", borderRadius: 7, fontSize: 13,
                 border: "1px solid var(--border2)", background: "transparent",
                 color: "var(--muted)", cursor: "pointer",
               }}
@@ -248,7 +248,7 @@ export default function LeadsPage() {
               <tr>
                 {["Nome", "Canal", "Campanha", "Origem", "Etapa", "Recebido", ""].map((h) => (
                   <th key={h} style={{
-                    padding: "9px 16px", fontSize: 16, color: "var(--muted)",
+                    padding: "9px 16px", fontSize: 15, color: "var(--muted)",
                     textAlign: "left", fontWeight: 400,
                     borderBottom: "1px solid var(--border)", letterSpacing: "0.3px",
                   }}>{h}</th>
@@ -283,13 +283,13 @@ export default function LeadsPage() {
                           width: 22, height: 22, borderRadius: "50%",
                           background: "var(--s4)", border: "1px solid var(--border2)",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 14, fontWeight: 500, color: "var(--sub)", flexShrink: 0,
+                          fontSize: 13, fontWeight: 500, color: "var(--sub)", flexShrink: 0,
                         }}>
                           {l.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                         </div>
                         <div>
-                          <div style={{ fontSize: 16, color: "var(--text)" }}>{l.nome}</div>
-                          <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--muted)" }}>
+                          <div style={{ fontSize: 15, color: "var(--text)" }}>{l.nome}</div>
+                          <div style={{ fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }}>
                             {formatarTelefone(l.contato)}
                           </div>
                         </div>
@@ -300,7 +300,7 @@ export default function LeadsPage() {
                     <td style={{ padding: "10px 16px" }} onClick={() => setLeadAberto(l)}>
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: 3,
-                        padding: "2px 6px", borderRadius: 3, fontSize: 14,
+                        padding: "2px 6px", borderRadius: 3, fontSize: 13,
                         background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)",
                       }}>
                         <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 10 }} />
@@ -309,12 +309,12 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Campanha */}
-                    <td style={{ padding: "10px 16px", fontSize: 14, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
                       {l.campanha || "—"}
                     </td>
 
                     {/* Origem */}
-                    <td style={{ padding: "10px 16px", fontSize: 14, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
                       {l.utm_source || "—"}{l.utm_medium ? ` / ${l.utm_medium}` : ""}
                     </td>
 
@@ -325,7 +325,7 @@ export default function LeadsPage() {
                         disabled={atualizando === l.id}
                         onChange={(e) => mudarEtapa(l.id, e.target.value)}
                         style={{
-                          padding: "5px 9px", borderRadius: 4, fontSize: 14,
+                          padding: "5px 9px", borderRadius: 4, fontSize: 13,
                           border: "1px solid var(--border)", background: "var(--s2)",
                           color: "var(--text)", cursor: "pointer",
                           opacity: atualizando === l.id ? 0.5 : 1,
@@ -338,13 +338,13 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Recebido */}
-                    <td style={{ padding: "10px 16px", fontSize: 14, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
                       {tempoRelativo(l.created_at)}
                     </td>
 
                     {/* Seta */}
                     <td style={{ padding: "10px 16px" }} onClick={() => setLeadAberto(l)}>
-                      <i className="ti ti-chevron-right" style={{ fontSize: 16, color: "var(--muted)" }} />
+                      <i className="ti ti-chevron-right" style={{ fontSize: 15, color: "var(--muted)" }} />
                     </td>
                   </tr>
                 ))
@@ -356,7 +356,7 @@ export default function LeadsPage() {
         {/* Paginação */}
         {totalPaginas > 1 && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
-            <span style={{ fontSize: 14, color: "var(--muted)" }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>
               {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, total)} de {total}
             </span>
             <div style={{ display: "flex", gap: 6 }}>
@@ -364,20 +364,20 @@ export default function LeadsPage() {
                 onClick={() => setPagina((p) => Math.max(1, p - 1))}
                 disabled={pagina === 1}
                 style={{
-                  padding: "6px 12px", borderRadius: 5, fontSize: 14,
+                  padding: "6px 12px", borderRadius: 5, fontSize: 13,
                   border: "1px solid var(--border2)", background: "var(--s2)",
                   color: "var(--sub)", cursor: pagina === 1 ? "not-allowed" : "pointer",
                   opacity: pagina === 1 ? 0.4 : 1,
                 }}
               >← Anterior</button>
-              <span style={{ fontSize: 14, color: "var(--muted)", padding: "4px 8px" }}>
+              <span style={{ fontSize: 13, color: "var(--muted)", padding: "4px 8px" }}>
                 {pagina} / {totalPaginas}
               </span>
               <button
                 onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                 disabled={pagina === totalPaginas}
                 style={{
-                  padding: "6px 12px", borderRadius: 5, fontSize: 14,
+                  padding: "6px 12px", borderRadius: 5, fontSize: 13,
                   border: "1px solid var(--border2)", background: "var(--s2)",
                   color: "var(--sub)", cursor: pagina === totalPaginas ? "not-allowed" : "pointer",
                   opacity: pagina === totalPaginas ? 0.4 : 1,
@@ -412,11 +412,11 @@ export default function LeadsPage() {
                   width: 28, height: 28, borderRadius: "50%",
                   background: "var(--s4)", border: "1px solid var(--border2)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 16, fontWeight: 500, color: "var(--sub)",
+                  fontSize: 15, fontWeight: 500, color: "var(--sub)",
                 }}>
                   {leadAberto.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text)" }}>{leadAberto.nome}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{leadAberto.nome}</span>
               </div>
               <button
                 onClick={() => setLeadAberto(null)}
@@ -430,7 +430,7 @@ export default function LeadsPage() {
 
               {/* Etapa */}
               <div>
-                <div style={{ fontSize: 16, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>ETAPA</div>
+                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>ETAPA</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {etapas.map((e) => (
                     <button
@@ -438,7 +438,7 @@ export default function LeadsPage() {
                       onClick={() => mudarEtapa(leadAberto.id, e.value)}
                       disabled={atualizando === leadAberto.id}
                       style={{
-                        padding: "6px 12px", borderRadius: 5, fontSize: 14,
+                        padding: "6px 12px", borderRadius: 5, fontSize: 13,
                         border: leadAberto.etapa === e.value ? "1px solid var(--sub)" : "1px solid var(--border)",
                         background: leadAberto.etapa === e.value ? "var(--s4)" : "var(--s2)",
                         color: leadAberto.etapa === e.value ? "var(--text)" : "var(--muted)",
@@ -451,7 +451,7 @@ export default function LeadsPage() {
 
               {/* Contato */}
               <div style={card}>
-                <div style={{ fontSize: 16, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>CONTATO</div>
+                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>CONTATO</div>
                 {[
                   { label: "Telefone", value: formatarTelefone(leadAberto.contato) },
                   { label: "Canal", value: leadAberto.canal },
@@ -459,15 +459,15 @@ export default function LeadsPage() {
                   { label: "Dispositivo", value: leadAberto.dispositivo },
                 ].filter((i) => i.value).map((i) => (
                   <div key={i.label} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 14, color: "var(--muted)" }}>{i.label}</span>
-                    <span style={{ fontSize: 14, color: "var(--text)", fontFamily: "monospace" }}>{i.value}</span>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>{i.label}</span>
+                    <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "monospace" }}>{i.value}</span>
                   </div>
                 ))}
               </div>
 
               {/* Rastreamento */}
               <div style={card}>
-                <div style={{ fontSize: 16, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>RASTREAMENTO</div>
+                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>RASTREAMENTO</div>
                 {[
                   { label: "Campanha", value: leadAberto.campanha },
                   { label: "Conjunto", value: leadAberto.conjunto },
@@ -480,8 +480,8 @@ export default function LeadsPage() {
                   { label: "GCLID", value: leadAberto.gclid ? "✓ Capturado" : null },
                 ].filter((i) => i.value).map((i) => (
                   <div key={i.label} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 14, color: "var(--muted)" }}>{i.label}</span>
-                    <span style={{ fontSize: 14, color: "var(--text)", fontFamily: "monospace", maxWidth: 180, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.value}</span>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>{i.label}</span>
+                    <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "monospace", maxWidth: 180, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.value}</span>
                   </div>
                 ))}
               </div>
@@ -489,11 +489,11 @@ export default function LeadsPage() {
               {/* Eventos Meta */}
               {leadAberto.evento_meta && leadAberto.evento_meta.length > 0 && (
                 <div style={card}>
-                  <div style={{ fontSize: 16, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>EVENTOS META CAPI</div>
+                  <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>EVENTOS META CAPI</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                     {leadAberto.evento_meta.map((ev, i) => (
                       <span key={i} style={{
-                        padding: "2px 7px", borderRadius: 3, fontSize: 14,
+                        padding: "2px 7px", borderRadius: 3, fontSize: 13,
                         background: "var(--s3)", color: "var(--sub)",
                         border: "1px solid var(--border)", fontFamily: "monospace",
                       }}>→ {ev}</span>
@@ -504,10 +504,10 @@ export default function LeadsPage() {
 
               {/* Data */}
               <div style={card}>
-                <div style={{ fontSize: 16, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>DATAS</div>
+                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>DATAS</div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0" }}>
-                  <span style={{ fontSize: 14, color: "var(--muted)" }}>Entrada</span>
-                  <span style={{ fontSize: 14, color: "var(--text)", fontFamily: "monospace" }}>
+                  <span style={{ fontSize: 13, color: "var(--muted)" }}>Entrada</span>
+                  <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "monospace" }}>
                     {new Date(leadAberto.created_at).toLocaleString("pt-BR")}
                   </span>
                 </div>
@@ -521,7 +521,7 @@ export default function LeadsPage() {
                   rel="noopener noreferrer"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    padding: "10px", borderRadius: 7, fontSize: 16, fontWeight: 500,
+                    padding: "10px", borderRadius: 7, fontSize: 15, fontWeight: 500,
                     background: "var(--s3)", color: "var(--text)", border: "1px solid var(--border2)",
                     textDecoration: "none", cursor: "pointer",
                   }}
