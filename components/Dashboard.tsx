@@ -140,7 +140,7 @@ export default function Dashboard() {
         padding: "13px 18px", borderBottom: "1px solid var(--border)",
         background: "var(--s1)", display: "flex", alignItems: "center",
         justifyContent: "space-between", flexShrink: 0,
-        position: "sticky", top: 0, zIndex: 10,
+        
       }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 500, letterSpacing: -0.2, color: "var(--text)" }}>
