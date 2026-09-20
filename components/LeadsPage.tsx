@@ -279,7 +279,7 @@ export default function LeadsPage() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     {/* Nome */}
-                    <td style={{ padding: "10px 16px" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px" }} >
                       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                         <div style={{
                           width: 22, height: 22, borderRadius: "50%",
@@ -299,7 +299,7 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Canal */}
-                    <td style={{ padding: "10px 16px" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px" }} >
                       <span style={{
                         display: "inline-flex", alignItems: "center", gap: 3,
                         padding: "2px 6px", borderRadius: 3, fontSize: 13,
@@ -311,12 +311,12 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Campanha */}
-                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} >
                       {l.campanha || "—"}
                     </td>
 
                     {/* Origem */}
-                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} >
                       {l.utm_source || "—"}{l.utm_medium ? ` / ${l.utm_medium}` : ""}
                     </td>
 
@@ -340,7 +340,7 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Recebido */}
-                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} onClick={() => setLeadAberto(l)}>
+                    <td style={{ padding: "10px 16px", fontSize: 13, fontFamily: "monospace", color: "var(--muted)" }} >
                       {tempoRelativo(l.created_at)}
                     </td>
 
@@ -396,152 +396,6 @@ export default function LeadsPage() {
         )}
       </div>
 
-      {/* Drawer */}
-      {leadAberto && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex" }}>
-          {/* Overlay */}
-          <div
-            style={{ flex: 1, background: "rgba(0,0,0,0.4)" }}
-            onClick={() => setLeadAberto(null)}
-          />
-          {/* Painel */}
-          <div style={{
-            width: 360, background: "var(--s1)", borderLeft: "1px solid var(--border)",
-            display: "flex", flexDirection: "column", overflowY: "auto",
-          }}>
-            {/* Header */}
-            <div style={{
-              padding: "14px 16px", borderBottom: "1px solid var(--border)",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              position: "sticky", top: 0, background: "var(--s1)", zIndex: 10,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: "var(--s4)", border: "1px solid var(--border2)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 15, fontWeight: 500, color: "var(--sub)",
-                }}>
-                  {leadAberto.nome.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{leadAberto.nome}</span>
-              </div>
-              <button
-                onClick={() => setLeadAberto(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16 }}
-              >
-                <i className="ti ti-x" />
-              </button>
-            </div>
-
-            <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-
-              {/* Etapa */}
-              <div>
-                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>ETAPA</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {etapas.map((e) => (
-                    <button
-                      key={e.value}
-                      onClick={() => mudarEtapa(leadAberto.id, e.value)}
-                      disabled={atualizando === leadAberto.id}
-                      style={{
-                        padding: "6px 12px", borderRadius: 5, fontSize: 13,
-                        border: leadAberto.etapa === e.value ? "1px solid var(--sub)" : "1px solid var(--border)",
-                        background: leadAberto.etapa === e.value ? "var(--s4)" : "var(--s2)",
-                        color: leadAberto.etapa === e.value ? "var(--text)" : "var(--muted)",
-                        cursor: "pointer", opacity: atualizando === leadAberto.id ? 0.5 : 1,
-                      }}
-                    >{e.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Contato */}
-              <div style={card}>
-                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>CONTATO</div>
-                {[
-                  { label: "Telefone", value: formatarTelefone(leadAberto.contato) },
-                  { label: "Canal", value: leadAberto.canal },
-                  { label: "Cidade", value: leadAberto.cidade },
-                  { label: "Dispositivo", value: leadAberto.dispositivo },
-                ].filter((i) => i.value).map((i) => (
-                  <div key={i.label} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 13, color: "var(--muted)" }}>{i.label}</span>
-                    <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "monospace" }}>{i.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Rastreamento */}
-              <div style={card}>
-                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>RASTREAMENTO</div>
-                {[
-                  { label: "Campanha", value: leadAberto.campanha },
-                  { label: "Conjunto", value: leadAberto.conjunto },
-                  { label: "Anúncio", value: leadAberto.anuncio },
-                  { label: "UTM Source", value: leadAberto.utm_source },
-                  { label: "UTM Medium", value: leadAberto.utm_medium },
-                  { label: "UTM Campaign", value: leadAberto.utm_campaign },
-                  { label: "UTM Content", value: leadAberto.utm_content },
-                  { label: "FBCLID", value: leadAberto.fbclid ? "✓ Capturado" : null },
-                  { label: "GCLID", value: leadAberto.gclid ? "✓ Capturado" : null },
-                ].filter((i) => i.value).map((i) => (
-                  <div key={i.label} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 13, color: "var(--muted)" }}>{i.label}</span>
-                    <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "monospace", maxWidth: 180, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Eventos Meta */}
-              {leadAberto.evento_meta && leadAberto.evento_meta.length > 0 && (
-                <div style={card}>
-                  <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>EVENTOS META CAPI</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                    {leadAberto.evento_meta.map((ev, i) => (
-                      <span key={i} style={{
-                        padding: "2px 7px", borderRadius: 3, fontSize: 13,
-                        background: "var(--s3)", color: "var(--sub)",
-                        border: "1px solid var(--border)", fontFamily: "monospace",
-                      }}>→ {ev}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Data */}
-              <div style={card}>
-                <div style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8, letterSpacing: "0.5px" }}>DATAS</div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0" }}>
-                  <span style={{ fontSize: 13, color: "var(--muted)" }}>Entrada</span>
-                  <span style={{ fontSize: 13, color: "var(--text)", fontFamily: "monospace" }}>
-                    {new Date(leadAberto.created_at).toLocaleString("pt-BR")}
-                  </span>
-                </div>
-              </div>
-
-              {/* WhatsApp */}
-              {leadAberto.contato && (
-                <a
-                  href={`https://wa.me/${leadAberto.contato.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    padding: "10px", borderRadius: 7, fontSize: 15, fontWeight: 500,
-                    background: "var(--s3)", color: "var(--text)", border: "1px solid var(--border2)",
-                    textDecoration: "none", cursor: "pointer",
-                  }}
-                >
-                  <i className="ti ti-brand-whatsapp" style={{ fontSize: 14 }} />
-                  Abrir WhatsApp
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
