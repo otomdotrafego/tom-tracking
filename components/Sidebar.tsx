@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
 
 type NavItem = { icon: string; label: string; href: string };
 type NavGroup = { section: string; items: NavItem[] };
@@ -58,6 +59,7 @@ export default function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -149,6 +151,27 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Usuário + logout */}
+      {user && (
+        <div style={{
+          padding: "10px 13px", borderTop: "1px solid var(--border)",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, color: "var(--text)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {user.user_metadata?.full_name || user.email?.split("@")[0]}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {user.email}
+            </div>
+          </div>
+          <button onClick={signOut} title="Sair"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16, flexShrink: 0 }}>
+            <i className="ti ti-logout" />
+          </button>
+        </div>
+      )}
 
       {/* Theme toggle */}
       <div style={{
