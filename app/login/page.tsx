@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const router = useRouter();
 
   async function handleSubmit() {
@@ -46,15 +47,18 @@ export default function LoginPage() {
           setErro(`Erro: ${error.message}`);
         }
       } else if (data.user) {
-        // Usuário criado — faz login automático
+        // Usuário criado — tenta login automático
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha });
-        if (loginError) {
-          setSucesso("✓ Conta criada! Faça login para continuar.");
-          setModo("login");
-          setSenha("");
+        if (!loginError) {
+          window.location.href = "/";
         } else {
-          router.push("/");
+          // Se login falhar, mostra mensagem e vai para login
+          setModo("login");
+          setSucesso("✓ Conta criada com sucesso! Entre com seu email e senha.");
+          setSenha("");
         }
+      } else {
+        setErro("Algo deu errado. Tente novamente.");
       }
     }
 
@@ -194,18 +198,30 @@ export default function LoginPage() {
           {modo !== "recuperar" && (
             <div>
               <label style={{ fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 5 }}>Senha</label>
-              <input
-                type="password"
-                placeholder={modo === "cadastro" ? "Mínimo 6 caracteres" : "Sua senha"}
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                style={{
-                  width: "100%", padding: "9px 12px", borderRadius: 7, fontSize: 13,
-                  border: "1px solid var(--border2)", background: "var(--s2)",
-                  color: "var(--text)", outline: "none",
-                }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type={mostrarSenha ? "text" : "password"}
+                  placeholder={modo === "cadastro" ? "Mínimo 6 caracteres" : "Sua senha"}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                  style={{
+                    width: "100%", padding: "9px 36px 9px 12px", borderRadius: 7, fontSize: 13,
+                    border: "1px solid var(--border2)", background: "var(--s2)",
+                    color: "var(--text)", outline: "none",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  style={{
+                    position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 14,
+                  }}
+                >
+                  <i className={`ti ${mostrarSenha ? "ti-eye-off" : "ti-eye"}`} />
+                </button>
+              </div>
             </div>
           )}
 
