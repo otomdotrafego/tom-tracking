@@ -31,7 +31,7 @@ export default function LoginPage() {
 
     if (modo === "cadastro") {
       if (!nome.trim()) { setErro("Digite seu nome."); setLoading(false); return; }
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
         options: { data: { full_name: nome } },
@@ -39,9 +39,13 @@ export default function LoginPage() {
       if (error) {
         setErro(error.message.includes("already registered")
           ? "Este email já está cadastrado."
-          : "Erro ao criar conta. Tente novamente.");
+          : error.message);
+      } else if (data.session) {
+        // Confirmação desabilitada — já logou direto
+        router.push("/");
       } else {
-        setSucesso("Conta criada! Verifique seu email para confirmar o cadastro.");
+        // Confirmação habilitada — precisa verificar email
+        setSucesso("Conta criada! Verifique seu email para confirmar o cadastro e depois faça login.");
       }
     }
 
