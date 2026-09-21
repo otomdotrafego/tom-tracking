@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Modo = "login" | "cadastro" | "recuperar";
@@ -14,7 +13,12 @@ export default function LoginPage() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const router = useRouter();
+
+  function trocarModo(novoModo: Modo) {
+    setModo(novoModo);
+    setErro("");
+    setSucesso("");
+  }
 
   async function handleSubmit() {
     setErro("");
@@ -26,7 +30,7 @@ export default function LoginPage() {
       if (error) {
         setErro("Email ou senha incorretos.");
       } else {
-        router.push("/");
+        window.location.href = "/";
       }
     }
 
@@ -47,18 +51,15 @@ export default function LoginPage() {
           setErro(`Erro: ${error.message}`);
         }
       } else if (data.user) {
-        // Usuário criado — tenta login automático
+        // Tenta login direto após cadastro
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha });
         if (!loginError) {
           window.location.href = "/";
         } else {
-          // Se login falhar, mostra mensagem e vai para login
+          setSucesso("✓ Conta criada! Agora faça login.");
           setModo("login");
-          setSucesso("✓ Conta criada com sucesso! Entre com seu email e senha.");
           setSenha("");
         }
-      } else {
-        setErro("Algo deu errado. Tente novamente.");
       }
     }
 
@@ -69,7 +70,7 @@ export default function LoginPage() {
       if (error) {
         setErro("Erro ao enviar email. Verifique o endereço.");
       } else {
-        setSucesso("✓ Email de recuperação enviado! Verifique sua caixa de entrada.");
+        setSucesso("✓ Email enviado! Verifique sua caixa de entrada.");
       }
     }
 
@@ -83,8 +84,7 @@ export default function LoginPage() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/` },
     });
-    if (error) setErro("Erro ao conectar com Google.");
-    setLoading(false);
+    if (error) { setErro("Erro ao conectar com Google."); setLoading(false); }
   }
 
   return (
@@ -131,17 +131,13 @@ export default function LoginPage() {
         {/* Botão Google */}
         {modo !== "recuperar" && (
           <>
-            <button
-              onClick={loginComGoogle}
-              disabled={loading}
-              style={{
-                width: "100%", padding: "10px", borderRadius: 8, fontSize: 14,
-                border: "1px solid var(--border2)", background: "var(--s2)",
-                color: "var(--text)", cursor: "pointer", display: "flex",
-                alignItems: "center", justifyContent: "center", gap: 8,
-                opacity: loading ? 0.6 : 1, marginBottom: 16,
-              }}
-            >
+            <button onClick={loginComGoogle} disabled={loading} style={{
+              width: "100%", padding: "10px", borderRadius: 8, fontSize: 14,
+              border: "1px solid var(--border2)", background: "var(--s2)",
+              color: "var(--text)", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center", gap: 8,
+              opacity: loading ? 0.6 : 1, marginBottom: 16,
+            }}>
               <svg width="16" height="16" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -150,7 +146,6 @@ export default function LoginPage() {
               </svg>
               Continuar com Google
             </button>
-
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
               <span style={{ fontSize: 12, color: "var(--muted)" }}>ou</span>
@@ -165,33 +160,19 @@ export default function LoginPage() {
           {modo === "cadastro" && (
             <div>
               <label style={{ fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 5 }}>Nome</label>
-              <input
-                type="text"
-                placeholder="Seu nome completo"
-                value={nome}
+              <input type="text" placeholder="Seu nome completo" value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                style={{
-                  width: "100%", padding: "9px 12px", borderRadius: 7, fontSize: 13,
-                  border: "1px solid var(--border2)", background: "var(--s2)",
-                  color: "var(--text)", outline: "none",
-                }}
+                style={{ width: "100%", padding: "9px 12px", borderRadius: 7, fontSize: 13, border: "1px solid var(--border2)", background: "var(--s2)", color: "var(--text)", outline: "none" }}
               />
             </div>
           )}
 
           <div>
             <label style={{ fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 5 }}>Email</label>
-            <input
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
+            <input type="email" placeholder="seu@email.com" value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              style={{
-                width: "100%", padding: "9px 12px", borderRadius: 7, fontSize: 13,
-                border: "1px solid var(--border2)", background: "var(--s2)",
-                color: "var(--text)", outline: "none",
-              }}
+              style={{ width: "100%", padding: "9px 12px", borderRadius: 7, fontSize: 13, border: "1px solid var(--border2)", background: "var(--s2)", color: "var(--text)", outline: "none" }}
             />
           </div>
 
@@ -205,51 +186,34 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                  style={{
-                    width: "100%", padding: "9px 36px 9px 12px", borderRadius: 7, fontSize: 13,
-                    border: "1px solid var(--border2)", background: "var(--s2)",
-                    color: "var(--text)", outline: "none",
-                  }}
+                  style={{ width: "100%", padding: "9px 36px 9px 12px", borderRadius: 7, fontSize: 13, border: "1px solid var(--border2)", background: "var(--s2)", color: "var(--text)", outline: "none" }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setMostrarSenha(!mostrarSenha)}
-                  style={{
-                    position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                    background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 14,
-                  }}
-                >
+                <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)}
+                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16 }}>
                   <i className={`ti ${mostrarSenha ? "ti-eye-off" : "ti-eye"}`} />
                 </button>
               </div>
             </div>
           )}
 
-          {/* Erro */}
           {erro && (
             <div style={{ fontSize: 12, color: "#f87171", background: "rgba(248,113,113,0.1)", padding: "10px 12px", borderRadius: 6, border: "1px solid rgba(248,113,113,0.2)" }}>
               {erro}
             </div>
           )}
 
-          {/* Sucesso */}
           {sucesso && (
             <div style={{ fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "10px 12px", borderRadius: 6, border: "1px solid rgba(74,222,128,0.2)" }}>
               {sucesso}
             </div>
           )}
 
-          {/* Botão principal */}
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              width: "100%", padding: "10px", borderRadius: 8, fontSize: 14,
-              fontWeight: 500, border: "none", cursor: loading ? "not-allowed" : "pointer",
-              background: "var(--s4)", color: "var(--text)",
-              opacity: loading ? 0.6 : 1, marginTop: 4,
-            }}
-          >
+          <button onClick={handleSubmit} disabled={loading} style={{
+            width: "100%", padding: "10px", borderRadius: 8, fontSize: 14,
+            fontWeight: 500, border: "none", cursor: loading ? "not-allowed" : "pointer",
+            background: "var(--s4)", color: "var(--text)",
+            opacity: loading ? 0.6 : 1, marginTop: 4,
+          }}>
             {loading ? "Aguarde..." : modo === "login" ? "Entrar" : modo === "cadastro" ? "Criar conta" : "Enviar email"}
           </button>
         </div>
@@ -258,13 +222,13 @@ export default function LoginPage() {
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
           {modo === "login" && (
             <>
-              <button onClick={() => { setModo("recuperar"); setErro(""); setSucesso(""); }}
+              <button onClick={() => trocarModo("recuperar")}
                 style={{ background: "none", border: "none", fontSize: 12, color: "var(--muted)", cursor: "pointer" }}>
                 Esqueci minha senha
               </button>
               <div style={{ fontSize: 12, color: "var(--muted)" }}>
                 Não tem conta?{" "}
-                <button onClick={() => { setModo("cadastro"); setErro(""); setSucesso(""); }}
+                <button onClick={() => trocarModo("cadastro")}
                   style={{ background: "none", border: "none", fontSize: 12, color: "var(--sub)", cursor: "pointer", fontWeight: 500 }}>
                   Criar agora
                 </button>
@@ -274,14 +238,14 @@ export default function LoginPage() {
           {modo === "cadastro" && (
             <div style={{ fontSize: 12, color: "var(--muted)" }}>
               Já tem conta?{" "}
-              <button onClick={() => { setModo("login"); setErro(""); setSucesso(""); }}
+              <button onClick={() => trocarModo("login")}
                 style={{ background: "none", border: "none", fontSize: 12, color: "var(--sub)", cursor: "pointer", fontWeight: 500 }}>
                 Entrar
               </button>
             </div>
           )}
           {modo === "recuperar" && (
-            <button onClick={() => { setModo("login"); setErro(""); setSucesso(""); }}
+            <button onClick={() => trocarModo("login")}
               style={{ background: "none", border: "none", fontSize: 12, color: "var(--muted)", cursor: "pointer" }}>
               ← Voltar para o login
             </button>
