@@ -31,21 +31,29 @@ export default function LoginPage() {
 
     if (modo === "cadastro") {
       if (!nome.trim()) { setErro("Digite seu nome."); setLoading(false); return; }
+      if (senha.length < 6) { setErro("A senha precisa ter pelo menos 6 caracteres."); setLoading(false); return; }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
         options: { data: { full_name: nome } },
       });
+
       if (error) {
-        setErro(error.message.includes("already registered")
-          ? "Este email já está cadastrado."
-          : error.message);
+        if (error.message.includes("already registered") || error.message.includes("already been registered")) {
+          setErro("Este email já está cadastrado. Faça login ou recupere sua senha.");
+        } else {
+          setErro(`Erro: ${error.message}`);
+        }
       } else if (data.session) {
-        // Confirmação desabilitada — já logou direto
+        // Confirmação desabilitada — redireciona direto
         router.push("/");
       } else {
-        // Confirmação habilitada — precisa verificar email
-        setSucesso("Conta criada! Verifique seu email para confirmar o cadastro e depois faça login.");
+        // Conta criada, redireciona para login com mensagem
+        setModo("login");
+        setSucesso("✓ Conta criada com sucesso! Faça login para continuar.");
+        setEmail(email);
+        setSenha("");
       }
     }
 
@@ -56,7 +64,7 @@ export default function LoginPage() {
       if (error) {
         setErro("Erro ao enviar email. Verifique o endereço.");
       } else {
-        setSucesso("Email de recuperação enviado! Verifique sua caixa de entrada.");
+        setSucesso("✓ Email de recuperação enviado! Verifique sua caixa de entrada.");
       }
     }
 
@@ -202,14 +210,14 @@ export default function LoginPage() {
 
           {/* Erro */}
           {erro && (
-            <div style={{ fontSize: 12, color: "#f87171", background: "rgba(248,113,113,0.1)", padding: "8px 12px", borderRadius: 6, border: "1px solid rgba(248,113,113,0.2)" }}>
+            <div style={{ fontSize: 12, color: "#f87171", background: "rgba(248,113,113,0.1)", padding: "10px 12px", borderRadius: 6, border: "1px solid rgba(248,113,113,0.2)" }}>
               {erro}
             </div>
           )}
 
           {/* Sucesso */}
           {sucesso && (
-            <div style={{ fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "8px 12px", borderRadius: 6, border: "1px solid rgba(74,222,128,0.2)" }}>
+            <div style={{ fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "10px 12px", borderRadius: 6, border: "1px solid rgba(74,222,128,0.2)" }}>
               {sucesso}
             </div>
           )}
@@ -220,7 +228,7 @@ export default function LoginPage() {
             disabled={loading}
             style={{
               width: "100%", padding: "10px", borderRadius: 8, fontSize: 14,
-              fontWeight: 500, border: "none", cursor: "pointer",
+              fontWeight: 500, border: "none", cursor: loading ? "not-allowed" : "pointer",
               background: "var(--s4)", color: "var(--text)",
               opacity: loading ? 0.6 : 1, marginTop: 4,
             }}
@@ -229,7 +237,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Links de navegação */}
+        {/* Links */}
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
           {modo === "login" && (
             <>
