@@ -45,15 +45,16 @@ export default function LoginPage() {
         } else {
           setErro(`Erro: ${error.message}`);
         }
-      } else if (data.session) {
-        // Confirmação desabilitada — redireciona direto
-        router.push("/");
-      } else {
-        // Conta criada, redireciona para login com mensagem
-        setModo("login");
-        setSucesso("✓ Conta criada com sucesso! Faça login para continuar.");
-        setEmail(email);
-        setSenha("");
+      } else if (data.user) {
+        // Usuário criado — faz login automático
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha });
+        if (loginError) {
+          setSucesso("✓ Conta criada! Faça login para continuar.");
+          setModo("login");
+          setSenha("");
+        } else {
+          router.push("/");
+        }
       }
     }
 
