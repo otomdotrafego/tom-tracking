@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getBadgeEtapa, getBadgeCanal } from "@/lib/cores";
 
 type Lead = {
   id: string;
@@ -274,7 +275,7 @@ export default function LeadsPage() {
                 leads.map((l) => (
                   <tr
                     key={l.id}
-                    style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
+                    style={{ borderBottom: "1px solid var(--border)", cursor: "pointer", borderLeft: `3px solid ${getBadgeEtapa(l.etapa).borda}` }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--s2)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
@@ -299,15 +300,13 @@ export default function LeadsPage() {
                     </td>
 
                     {/* Canal */}
-                    <td style={{ padding: "10px 16px" }} >
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 3,
-                        padding: "2px 6px", borderRadius: 3, fontSize: 13,
-                        background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)",
-                      }}>
-                        <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 10 }} />
-                        {l.canal}
-                      </span>
+                    <td style={{ padding: "10px 16px" }}>
+                      {(() => { const c = getBadgeCanal(l.canal); return (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 8px", borderRadius: 4, fontSize: 12, background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
+                          <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 11 }} />
+                          {l.canal}
+                        </span>
+                      ); })()}
                     </td>
 
                     {/* Campanha */}

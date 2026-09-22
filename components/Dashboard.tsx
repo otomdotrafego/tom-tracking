@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { getBadgeEtapa, getBadgeCanal } from "@/lib/cores";
 
 type Lead = {
   id: string;
@@ -198,14 +199,14 @@ export default function Dashboard() {
           gap: 12, marginBottom: 16,
         }}>
           {[
-            { label: "Total de leads", value: total },
-            { label: "Em conversa", value: abertas },
-            { label: "Vendas fechadas", value: vendas },
-            { label: "Taxa de conversão", value: `${txConversao}%` },
+            { label: "Total de leads", value: total, cor: "var(--text)" },
+            { label: "Em conversa", value: abertas, cor: "#4a9eca" },
+            { label: "Vendas fechadas", value: vendas, cor: "#4caf70" },
+            { label: "Taxa de conversão", value: `${txConversao}%`, cor: "#4caf70" },
           ].map((m) => (
             <div key={m.label} style={card}>
               <div style={{ fontSize: 16, color: "var(--muted)", marginBottom: 6 }}>{m.label}</div>
-              <div style={{ fontSize: 26, fontWeight: 500, color: "var(--text)", fontFamily: "monospace", letterSpacing: -1 }}>
+              <div style={{ fontSize: 26, fontWeight: 500, color: m.cor, fontFamily: "monospace", letterSpacing: -1 }}>
                 {loading ? "..." : m.value}
               </div>
               <div style={{ fontSize: 16, color: "var(--muted)", marginTop: 4 }}>dados reais</div>
@@ -291,7 +292,7 @@ export default function Dashboard() {
                 ) : leadsFiltrados.length === 0 ? (
                   <tr><td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Nenhum lead encontrado</td></tr>
                 ) : leadsFiltrados.map((l) => (
-                  <tr key={l.id} style={{ borderBottom: "1px solid var(--border)" }}
+                  <tr key={l.id} style={{ borderBottom: "1px solid var(--border)", borderLeft: `3px solid ${getBadgeEtapa(l.etapa).borda}` }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--s2)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
@@ -309,9 +310,11 @@ export default function Dashboard() {
                     {!isMobile && (
                       <>
                         <td style={{ padding: "9px 16px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 4, fontSize: 13, background: "var(--s3)", color: "var(--sub)", border: "1px solid var(--border)" }}>
-                            <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 11 }} /> {l.canal}
-                          </span>
+                          {(() => { const c = getBadgeCanal(l.canal); return (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 4, fontSize: 12, background: c.bg, color: c.text, border: `1px solid ${c.border}` }}>
+                              <i className={`ti ${canalIcon[l.canal] || "ti-circle"}`} style={{ fontSize: 11 }} /> {l.canal}
+                            </span>
+                          ); })()}
                         </td>
                         <td style={{ padding: "9px 16px", fontSize: 14, fontFamily: "monospace", color: "var(--muted)" }}>{l.campanha}</td>
                       </>
