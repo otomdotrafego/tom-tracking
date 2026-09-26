@@ -10,7 +10,7 @@ const supabase = createClient(
 // Fallback para as credenciais globais de env (antes do multi-tenant)
 const PIXEL_ID_GLOBAL = process.env.META_PIXEL_ID!;
 const ACCESS_TOKEN_GLOBAL = process.env.META_ACCESS_TOKEN!;
-const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "";
+// TEST_EVENT_CODE removido — em produção não usar
 
 type EventName = "Lead" | "Schedule" | "Purchase" | "QualifiedLead";
 
@@ -80,13 +80,8 @@ async function enviarEventoMeta(
           value: 0,
         },
       },
-    ],
+  ];
   };
-
-  // test_event_code na RAIZ do payload
-  if (TEST_EVENT_CODE) {
-    eventPayload.test_event_code = TEST_EVENT_CODE;
-  }
 
   const response = await fetch(
     `https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`,
@@ -97,7 +92,9 @@ async function enviarEventoMeta(
     }
   );
 
-  return response.json();
+  const json = await response.json();
+  console.log(`[CAPI] Evento: ${eventName} | Pixel: ${pixelId} | Status: ${response.status} | Resposta:`, JSON.stringify(json));
+  return json;
 }
 
 export async function POST(request: NextRequest) {
