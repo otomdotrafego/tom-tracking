@@ -1,0 +1,644 @@
+From 392bc7140e3b32ccbd8f336237aea96b35897e4e Mon Sep 17 00:00:00 2001
+From: Tom Tracking <dev@tomtracking.com>
+Date: Sat, 26 Sep 2026 02:03:30 +0000
+Subject: [PATCH] =?UTF-8?q?feat:=20p=C3=A1gina=20de=20configura=C3=A7?=
+ =?UTF-8?q?=C3=B5es=20+=20isolamento=20por=20tenant=5Fid?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Cria app/configuracoes/page.tsx: Pixel ID, Access Token, Verify Token, WhatsApp por cliente
+- Link rastreável gerado automaticamente com tid=user.id
+- Dashboard, Leads, Jornadas, Relatórios: todos filtram por .eq('tenant_id', user.id)
+- CAPI usa credenciais Meta do perfil do tenant (pixelId e accessToken por cliente)
+- /r captura tid da URL e salva tenant_id no insert do lead
+---
+ app/api/capi/route.ts      |  26 ++-
+ app/configuracoes/page.tsx | 354 +++++++++++++++++++++++++++++++++++++
+ app/jornadas/page.tsx      |   6 +-
+ app/r/page.tsx             |   4 +-
+ app/relatorios/page.tsx    |   6 +-
+ components/Dashboard.tsx   |  10 +-
+ components/LeadsPage.tsx   |   6 +-
+ 7 files changed, 401 insertions(+), 11 deletions(-)
+ create mode 100644 app/configuracoes/page.tsx
+
+diff --git a/app/api/capi/route.ts b/app/api/capi/route.ts
+index 2c65893..c33b863 100644
+--- a/app/api/capi/route.ts
++++ b/app/api/capi/route.ts
+@@ -7,8 +7,9 @@ const supabase = createClient(
+   process.env.SUPABASE_SERVICE_ROLE_KEY!
+ );
+ 
+-const PIXEL_ID = process.env.META_PIXEL_ID!;
+-const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN!;
++// Fallback para as credenciais globais de env (antes do multi-tenant)
++const PIXEL_ID_GLOBAL = process.env.META_PIXEL_ID!;
++const ACCESS_TOKEN_GLOBAL = process.env.META_ACCESS_TOKEN!;
+ const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "";
+ 
+ type EventName = "Lead" | "Schedule" | "Purchase" | "QualifiedLead";
+@@ -34,7 +35,9 @@ async function enviarEventoMeta(
+     fbclid?: string;
+     ip?: string;
+     userAgent?: string;
+-  }
++  },
++  pixelId: string,
++  accessToken: string
+ ) {
+   const phoneFormatted = userData.phone
+     ? formatarTelefone(userData.phone)
+@@ -86,7 +89,7 @@ async function enviarEventoMeta(
+   }
+ 
+   const response = await fetch(
+-    `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
++    `https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`,
+     {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+@@ -124,6 +127,19 @@ export async function POST(request: NextRequest) {
+     const ip = request.headers.get("x-forwarded-for") || "177.100.0.1";
+     const userAgent = request.headers.get("user-agent") || "Mozilla/5.0";
+ 
++    // Busca credenciais do tenant (pixel e token próprios do cliente)
++    let pixelId = PIXEL_ID_GLOBAL;
++    let accessToken = ACCESS_TOKEN_GLOBAL;
++    if (lead.tenant_id) {
++      const { data: perfil } = await supabase
++        .from("perfis")
++        .select("meta_pixel_id, meta_access_token")
++        .eq("id", lead.tenant_id)
++        .single();
++      if (perfil?.meta_pixel_id) pixelId = perfil.meta_pixel_id;
++      if (perfil?.meta_access_token) accessToken = perfil.meta_access_token;
++    }
++
+     const resultado = await enviarEventoMeta(evento, leadId, {
+       phone: lead.contato,
+       email: lead.email || undefined,
+@@ -131,7 +147,7 @@ export async function POST(request: NextRequest) {
+       fbclid: lead.fbclid,
+       ip,
+       userAgent,
+-    });
++    }, pixelId, accessToken);
+ 
+     await supabase
+       .from("leads")
+diff --git a/app/configuracoes/page.tsx b/app/configuracoes/page.tsx
+new file mode 100644
+index 0000000..dcabb12
+--- /dev/null
++++ b/app/configuracoes/page.tsx
+@@ -0,0 +1,354 @@
++"use client";
++import { useEffect, useState } from "react";
++import Sidebar from "@/components/Sidebar";
++import { supabase } from "@/lib/supabase";
++import { useAuth } from "@/components/AuthProvider";
++
++type Perfil = {
++  id: string;
++  nome: string;
++  email: string;
++  plano: string;
++  meta_pixel_id: string | null;
++  meta_access_token: string | null;
++  meta_verify_token: string | null;
++  whatsapp_numero: string | null;
++};
++
++const campo: React.CSSProperties = {
++  display: "flex",
++  flexDirection: "column",
++  gap: 6,
++};
++
++const label: React.CSSProperties = {
++  fontSize: 11,
++  color: "var(--sub)",
++  textTransform: "uppercase",
++  letterSpacing: "0.06em",
++  fontWeight: 600,
++};
++
++const input: React.CSSProperties = {
++  background: "var(--s2)",
++  border: "1px solid var(--border)",
++  borderRadius: 6,
++  padding: "9px 12px",
++  fontSize: 13,
++  color: "var(--text)",
++  outline: "none",
++  width: "100%",
++  fontFamily: "inherit",
++};
++
++const card: React.CSSProperties = {
++  background: "var(--s1)",
++  border: "1px solid var(--border)",
++  borderRadius: 8,
++  padding: "20px 22px",
++  display: "flex",
++  flexDirection: "column",
++  gap: 18,
++};
++
++const sectionTitle: React.CSSProperties = {
++  fontSize: 12,
++  fontWeight: 700,
++  color: "var(--sub)",
++  textTransform: "uppercase",
++  letterSpacing: "0.07em",
++  paddingBottom: 14,
++  borderBottom: "1px solid var(--border)",
++  marginBottom: 2,
++};
++
++function CopyButton({ text }: { text: string }) {
++  const [copiado, setCopiado] = useState(false);
++  return (
++    <button
++      onClick={() => {
++        navigator.clipboard.writeText(text);
++        setCopiado(true);
++        setTimeout(() => setCopiado(false), 1800);
++      }}
++      style={{
++        background: copiado ? "var(--s4)" : "var(--s3)",
++        border: "1px solid var(--border)",
++        borderRadius: 5,
++        padding: "5px 10px",
++        fontSize: 11,
++        color: copiado ? "#4caf70" : "var(--sub)",
++        cursor: "pointer",
++        whiteSpace: "nowrap",
++        fontFamily: "inherit",
++        flexShrink: 0,
++      }}
++    >
++      {copiado ? "✓ Copiado" : "Copiar"}
++    </button>
++  );
++}
++
++export default function ConfiguracoesPage() {
++  const { user } = useAuth();
++  const [perfil, setPerfil] = useState<Perfil | null>(null);
++  const [loading, setLoading] = useState(true);
++  const [salvando, setSalvando] = useState(false);
++  const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
++  const [mostrarToken, setMostrarToken] = useState(false);
++
++  // Campos editáveis
++  const [nome, setNome] = useState("");
++  const [pixelId, setPixelId] = useState("");
++  const [accessToken, setAccessToken] = useState("");
++  const [verifyToken, setVerifyToken] = useState("");
++  const [whatsapp, setWhatsapp] = useState("");
++
++  useEffect(() => {
++    if (!user) return;
++    supabase
++      .from("perfis")
++      .select("*")
++      .eq("id", user.id)
++      .single()
++      .then(({ data, error }) => {
++        if (!error && data) {
++          const p = data as Perfil;
++          setPerfil(p);
++          setNome(p.nome || "");
++          setPixelId(p.meta_pixel_id || "");
++          setAccessToken(p.meta_access_token || "");
++          setVerifyToken(p.meta_verify_token || "tomtracking2024");
++          setWhatsapp(p.whatsapp_numero || "");
++        }
++        setLoading(false);
++      });
++  }, [user]);
++
++  function mostrarToast(msg: string, tipo: "ok" | "erro" = "ok") {
++    setToast({ msg, tipo });
++    setTimeout(() => setToast(null), 3500);
++  }
++
++  async function salvar() {
++    if (!user) return;
++    setSalvando(true);
++    const { error } = await supabase.from("perfis").upsert({
++      id: user.id,
++      email: user.email,
++      nome: nome.trim(),
++      meta_pixel_id: pixelId.trim() || null,
++      meta_access_token: accessToken.trim() || null,
++      meta_verify_token: verifyToken.trim() || null,
++      whatsapp_numero: whatsapp.trim() || null,
++    });
++    setSalvando(false);
++    if (error) {
++      mostrarToast("Erro ao salvar: " + error.message, "erro");
++    } else {
++      mostrarToast("Configurações salvas");
++    }
++  }
++
++  const linkRastreavel = whatsapp
++    ? `${typeof window !== "undefined" ? window.location.origin : "https://tom-tracking.vercel.app"}/r?wa=${whatsapp.replace(/\D/g, "")}&tid=${user?.id || ""}&utm_source=facebook&utm_medium=cpc&utm_campaign=`
++    : "";
++
++  if (loading) {
++    return (
++      <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
++        <Sidebar />
++        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
++          <span style={{ fontSize: 13, color: "var(--muted)" }}>Carregando...</span>
++        </div>
++      </div>
++    );
++  }
++
++  return (
++    <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
++      <Sidebar />
++
++      <main style={{ flex: 1, padding: "28px 28px 60px", maxWidth: 720, margin: "0 auto", width: "100%" }}>
++        {/* Cabeçalho */}
++        <div style={{ marginBottom: 28 }}>
++          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>
++            Configurações
++          </h1>
++          <p style={{ fontSize: 13, color: "var(--sub)" }}>
++            Dados da sua conta e integrações
++          </p>
++        </div>
++
++        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
++
++          {/* Perfil */}
++          <div style={card}>
++            <div style={sectionTitle}>Perfil</div>
++            <div style={campo}>
++              <label style={label}>Nome</label>
++              <input
++                style={input}
++                value={nome}
++                onChange={(e) => setNome(e.target.value)}
++                placeholder="Seu nome ou da empresa"
++              />
++            </div>
++            <div style={campo}>
++              <label style={label}>E-mail</label>
++              <input
++                style={{ ...input, color: "var(--muted)", cursor: "not-allowed" }}
++                value={perfil?.email || user?.email || ""}
++                readOnly
++              />
++            </div>
++            <div style={campo}>
++              <label style={label}>Plano</label>
++              <div style={{
++                display: "inline-flex", alignItems: "center", gap: 6,
++                background: "var(--s3)", border: "1px solid var(--border)",
++                borderRadius: 5, padding: "6px 12px", fontSize: 12,
++                color: "var(--sub)", width: "fit-content",
++              }}>
++                <i className="ti ti-star" style={{ fontSize: 13, color: "#b8a832" }} />
++                {perfil?.plano || "Gratuito"}
++              </div>
++            </div>
++          </div>
++
++          {/* Meta Ads */}
++          <div style={card}>
++            <div style={sectionTitle}>Meta Ads · CAPI</div>
++
++            <div style={campo}>
++              <label style={label}>Pixel ID</label>
++              <input
++                style={input}
++                value={pixelId}
++                onChange={(e) => setPixelId(e.target.value)}
++                placeholder="Ex: 1386783446463518"
++              />
++            </div>
++
++            <div style={campo}>
++              <label style={label}>Access Token</label>
++              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
++                <input
++                  style={input}
++                  type={mostrarToken ? "text" : "password"}
++                  value={accessToken}
++                  onChange={(e) => setAccessToken(e.target.value)}
++                  placeholder="EAAxxxxxx..."
++                />
++                <button
++                  onClick={() => setMostrarToken(!mostrarToken)}
++                  style={{
++                    background: "var(--s3)", border: "1px solid var(--border)",
++                    borderRadius: 6, padding: "9px 12px", cursor: "pointer",
++                    color: "var(--sub)", flexShrink: 0,
++                  }}
++                >
++                  <i className={`ti ${mostrarToken ? "ti-eye-off" : "ti-eye"}`} style={{ fontSize: 15 }} />
++                </button>
++              </div>
++              <span style={{ fontSize: 11, color: "var(--muted)" }}>
++                Token de sistema do Meta Business Suite com permissão de Pixel
++              </span>
++            </div>
++
++            <div style={campo}>
++              <label style={label}>Verify Token (Webhook)</label>
++              <input
++                style={input}
++                value={verifyToken}
++                onChange={(e) => setVerifyToken(e.target.value)}
++                placeholder="tomtracking2024"
++              />
++              <span style={{ fontSize: 11, color: "var(--muted)" }}>
++                Token para validação do webhook no painel do Meta
++              </span>
++            </div>
++          </div>
++
++          {/* WhatsApp */}
++          <div style={card}>
++            <div style={sectionTitle}>WhatsApp</div>
++            <div style={campo}>
++              <label style={label}>Número (com DDI)</label>
++              <input
++                style={input}
++                value={whatsapp}
++                onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))}
++                placeholder="5511999999999"
++                maxLength={15}
++              />
++              <span style={{ fontSize: 11, color: "var(--muted)" }}>
++                Apenas números. Ex: 5511999887766
++              </span>
++            </div>
++
++            {whatsapp && (
++              <div style={campo}>
++                <label style={label}>Link rastreável</label>
++                <div style={{
++                  display: "flex", gap: 8, alignItems: "center",
++                  background: "var(--s2)", border: "1px solid var(--border)",
++                  borderRadius: 6, padding: "9px 12px",
++                }}>
++                  <span style={{
++                    fontSize: 12, color: "var(--sub)", flex: 1,
++                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
++                    fontFamily: "monospace",
++                  }}>
++                    {linkRastreavel}
++                  </span>
++                  <CopyButton text={linkRastreavel} />
++                </div>
++                <span style={{ fontSize: 11, color: "var(--muted)" }}>
++                  Use este link nos seus anúncios. Salve primeiro para gerar com seu ID.
++                </span>
++              </div>
++            )}
++          </div>
++
++          {/* Botão salvar */}
++          <div style={{ display: "flex", justifyContent: "flex-end" }}>
++            <button
++              onClick={salvar}
++              disabled={salvando}
++              style={{
++                background: salvando ? "var(--s3)" : "#4a9eca",
++                color: salvando ? "var(--sub)" : "#fff",
++                border: "none",
++                borderRadius: 7,
++                padding: "10px 24px",
++                fontSize: 13,
++                fontWeight: 600,
++                cursor: salvando ? "not-allowed" : "pointer",
++                fontFamily: "inherit",
++                transition: "background 0.15s",
++              }}
++            >
++              {salvando ? "Salvando..." : "Salvar configurações"}
++            </button>
++          </div>
++        </div>
++      </main>
++
++      {/* Toast */}
++      {toast && (
++        <div style={{
++          position: "fixed", bottom: 24, right: 24,
++          background: toast.tipo === "ok" ? "#0d1e14" : "#1e0d0d",
++          border: `1px solid ${toast.tipo === "ok" ? "#2a5a38" : "#5a2a2a"}`,
++          color: toast.tipo === "ok" ? "#4caf70" : "#c46060",
++          borderRadius: 8, padding: "10px 16px", fontSize: 13,
++          boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
++          zIndex: 9999,
++        }}>
++          {toast.msg}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/app/jornadas/page.tsx b/app/jornadas/page.tsx
+index 18c6469..4cc6227 100644
+--- a/app/jornadas/page.tsx
++++ b/app/jornadas/page.tsx
+@@ -2,6 +2,7 @@
+ import { useEffect, useState } from "react";
+ import Sidebar from "@/components/Sidebar";
+ import { supabase } from "@/lib/supabase";
++import { useAuth } from "@/components/AuthProvider";
+ 
+ type Lead = {
+   id: string;
+@@ -108,6 +109,7 @@ const card: React.CSSProperties = {
+ };
+ 
+ export default function JornadasPage() {
++  const { user } = useAuth();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [leadSelecionado, setLeadSelecionado] = useState<Lead | null>(null);
+   const [busca, setBusca] = useState("");
+@@ -119,9 +121,11 @@ export default function JornadasPage() {
+   const [toast, setToast] = useState<string | null>(null);
+ 
+   useEffect(() => {
++    if (!user) return;
+     supabase
+       .from("leads")
+       .select("*")
++      .eq("tenant_id", user.id)
+       .order("created_at", { ascending: false })
+       .then(({ data }) => {
+         if (data && data.length > 0) {
+@@ -129,7 +133,7 @@ export default function JornadasPage() {
+           selecionarLead(data[0]);
+         }
+       });
+-  }, []);
++  }, [user]);
+ 
+   async function selecionarLead(lead: Lead) {
+     setLeadSelecionado(lead);
+diff --git a/app/r/page.tsx b/app/r/page.tsx
+index 4cf7ad9..1ecd732 100644
+--- a/app/r/page.tsx
++++ b/app/r/page.tsx
+@@ -15,13 +15,14 @@ export default function Redirect() {
+       const utm_term = params.get("utm_term") || "";
+       const whatsapp = params.get("wa") || "";
+       const mensagem = params.get("msg") || "Olá, vim pelo anúncio!";
++      const tenant_id = params.get("tid") || null;
+ 
+       if (!whatsapp) {
+         console.error("Número de WhatsApp não informado");
+         return;
+       }
+ 
+-      // Salva o lead no banco
++      // Salva o lead no banco com tenant_id do cliente
+       await supabase.from("leads").insert({
+         nome: "Lead WhatsApp",
+         contato: whatsapp,
+@@ -33,6 +34,7 @@ export default function Redirect() {
+         utm_content,
+         fbclid,
+         etapa: "novo",
++        ...(tenant_id ? { tenant_id } : {}),
+       });
+ 
+       // Redireciona pro WhatsApp
+diff --git a/app/relatorios/page.tsx b/app/relatorios/page.tsx
+index 51086ef..2952adf 100644
+--- a/app/relatorios/page.tsx
++++ b/app/relatorios/page.tsx
+@@ -2,6 +2,7 @@
+ import { useEffect, useState } from "react";
+ import Sidebar from "@/components/Sidebar";
+ import { supabase } from "@/lib/supabase";
++import { useAuth } from "@/components/AuthProvider";
+ 
+ type Lead = {
+   id: string;
+@@ -47,11 +48,13 @@ function formatarDia(iso: string) {
+ }
+ 
+ export default function RelatoriosPage() {
++  const { user } = useAuth();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [periodo, setPeriodo] = useState<Periodo>("30d");
+ 
+   useEffect(() => {
++    if (!user) return;
+     const dias = periodo === "7d" ? 7 : periodo === "30d" ? 30 : 90;
+     const desde = new Date();
+     desde.setDate(desde.getDate() - dias);
+@@ -59,13 +62,14 @@ export default function RelatoriosPage() {
+     supabase
+       .from("leads")
+       .select("id, canal, utm_source, utm_medium, utm_campaign, utm_content, etapa, created_at, fbclid, gclid")
++      .eq("tenant_id", user.id)
+       .gte("created_at", desde.toISOString())
+       .order("created_at", { ascending: true })
+       .then(({ data }) => {
+         if (data) setLeads(data);
+         setLoading(false);
+       });
+-  }, [periodo]);
++  }, [user, periodo]);
+ 
+   // --- Métricas gerais ---
+   const total = leads.length;
+diff --git a/components/Dashboard.tsx b/components/Dashboard.tsx
+index d1853cf..40f7ec4 100644
+--- a/components/Dashboard.tsx
++++ b/components/Dashboard.tsx
+@@ -2,6 +2,7 @@
+ import { useEffect, useState } from "react";
+ import { supabase } from "@/lib/supabase";
+ import { getBadgeEtapa, getBadgeCanal } from "@/lib/cores";
++import { useAuth } from "@/components/AuthProvider";
+ 
+ type Lead = {
+   id: string;
+@@ -59,6 +60,7 @@ function useIsMobile() {
+ }
+ 
+ export default function Dashboard() {
++  const { user } = useAuth();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [canalFiltro, setCanalFiltro] = useState("Todos");
+@@ -67,11 +69,15 @@ export default function Dashboard() {
+   const [toast, setToast] = useState<string | null>(null);
+   const isMobile = useIsMobile();
+ 
+-  useEffect(() => { fetchLeads(); }, []);
++  useEffect(() => { if (user) fetchLeads(); }, [user]);
+ 
+   async function fetchLeads() {
++    if (!user) return;
+     const { data, error } = await supabase
+-      .from("leads").select("*").order("created_at", { ascending: false });
++      .from("leads")
++      .select("*")
++      .eq("tenant_id", user.id)
++      .order("created_at", { ascending: false });
+     if (!error && data) setLeads(data);
+     setLoading(false);
+   }
+diff --git a/components/LeadsPage.tsx b/components/LeadsPage.tsx
+index 797c83f..7389c2c 100644
+--- a/components/LeadsPage.tsx
++++ b/components/LeadsPage.tsx
+@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
+ import { useRouter } from "next/navigation";
+ import { supabase } from "@/lib/supabase";
+ import { getBadgeEtapa, getBadgeCanal } from "@/lib/cores";
++import { useAuth } from "@/components/AuthProvider";
+ 
+ type Lead = {
+   id: string;
+@@ -79,6 +80,7 @@ const card: React.CSSProperties = {
+ const POR_PAGINA = 20;
+ 
+ export default function LeadsPage() {
++  const { user } = useAuth();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [total, setTotal] = useState(0);
+   const [loading, setLoading] = useState(true);
+@@ -92,10 +94,12 @@ export default function LeadsPage() {
+   const [toast, setToast] = useState<string | null>(null);
+ 
+   const buscarLeads = useCallback(async () => {
++    if (!user) return;
+     setLoading(true);
+     let query = supabase
+       .from("leads")
+       .select("*", { count: "exact" })
++      .eq("tenant_id", user.id)
+       .order("created_at", { ascending: false })
+       .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+ 
+@@ -110,7 +114,7 @@ export default function LeadsPage() {
+       setTotal(count ?? 0);
+     }
+     setLoading(false);
+-  }, [busca, filtroEtapa, filtroCanal, pagina]);
++  }, [user, busca, filtroEtapa, filtroCanal, pagina]);
+ 
+   useEffect(() => { setPagina(1); }, [busca, filtroEtapa, filtroCanal]);
+   useEffect(() => { buscarLeads(); }, [buscarLeads]);
+-- 
+2.43.0
+

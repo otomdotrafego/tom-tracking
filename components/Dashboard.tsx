@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getBadgeEtapa, getBadgeCanal } from "@/lib/cores";
+import { useAuth } from "@/components/AuthProvider";
 
 type Lead = {
   id: string;
@@ -59,6 +60,7 @@ function useIsMobile() {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [canalFiltro, setCanalFiltro] = useState("Todos");
@@ -67,11 +69,15 @@ export default function Dashboard() {
   const [toast, setToast] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
-  useEffect(() => { fetchLeads(); }, []);
+  useEffect(() => { if (user) fetchLeads(); }, [user]);
 
   async function fetchLeads() {
+    if (!user) return;
     const { data, error } = await supabase
-      .from("leads").select("*").order("created_at", { ascending: false });
+      .from("leads")
+      .select("*")
+      .eq("tenant_id", user.id)
+      .order("created_at", { ascending: false });
     if (!error && data) setLeads(data);
     setLoading(false);
   }

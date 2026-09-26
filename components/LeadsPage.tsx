@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBadgeEtapa, getBadgeCanal } from "@/lib/cores";
+import { useAuth } from "@/components/AuthProvider";
 
 type Lead = {
   id: string;
@@ -79,6 +80,7 @@ const card: React.CSSProperties = {
 const POR_PAGINA = 20;
 
 export default function LeadsPage() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -92,10 +94,12 @@ export default function LeadsPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   const buscarLeads = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     let query = supabase
       .from("leads")
       .select("*", { count: "exact" })
+      .eq("tenant_id", user.id)
       .order("created_at", { ascending: false })
       .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
 
@@ -110,7 +114,7 @@ export default function LeadsPage() {
       setTotal(count ?? 0);
     }
     setLoading(false);
-  }, [busca, filtroEtapa, filtroCanal, pagina]);
+  }, [user, busca, filtroEtapa, filtroCanal, pagina]);
 
   useEffect(() => { setPagina(1); }, [busca, filtroEtapa, filtroCanal]);
   useEffect(() => { buscarLeads(); }, [buscarLeads]);

@@ -7,8 +7,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const PIXEL_ID = process.env.META_PIXEL_ID!;
-const ACCESS_TOKEN = process.env.META_ACCESS_TOKEN!;
+// Fallback para as credenciais globais de env (antes do multi-tenant)
+const PIXEL_ID_GLOBAL = process.env.META_PIXEL_ID!;
+const ACCESS_TOKEN_GLOBAL = process.env.META_ACCESS_TOKEN!;
 const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "";
 
 type EventName = "Lead" | "Schedule" | "Purchase" | "QualifiedLead";
@@ -34,7 +35,9 @@ async function enviarEventoMeta(
     fbclid?: string;
     ip?: string;
     userAgent?: string;
-  }
+  },
+  pixelId: string,
+  accessToken: string
 ) {
   const phoneFormatted = userData.phone
     ? formatarTelefone(userData.phone)
@@ -86,7 +89,7 @@ async function enviarEventoMeta(
   }
 
   const response = await fetch(
-    `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
+    `https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -124,6 +127,19 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get("x-forwarded-for") || "177.100.0.1";
     const userAgent = request.headers.get("user-agent") || "Mozilla/5.0";
 
+    // Busca credenciais do tenant (pixel e token próprios do cliente)
+    let pixelId = PIXEL_ID_GLOBAL;
+    let accessToken = ACCESS_TOKEN_GLOBAL;
+    if (lead.tenant_id) {
+      const { data: perfil } = await supabase
+        .from("perfis")
+        .select("meta_pixel_id, meta_access_token")
+        .eq("id", lead.tenant_id)
+        .single();
+      if (perfil?.meta_pixel_id) pixelId = perfil.meta_pixel_id;
+      if (perfil?.meta_access_token) accessToken = perfil.meta_access_token;
+    }
+
     const resultado = await enviarEventoMeta(evento, leadId, {
       phone: lead.contato,
       email: lead.email || undefined,
@@ -131,7 +147,7 @@ export async function POST(request: NextRequest) {
       fbclid: lead.fbclid,
       ip,
       userAgent,
-    });
+    }, pixelId, accessToken);
 
     await supabase
       .from("leads")

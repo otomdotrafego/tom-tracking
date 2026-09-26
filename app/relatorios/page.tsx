@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 type Lead = {
   id: string;
@@ -47,11 +48,13 @@ function formatarDia(iso: string) {
 }
 
 export default function RelatoriosPage() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState<Periodo>("30d");
 
   useEffect(() => {
+    if (!user) return;
     const dias = periodo === "7d" ? 7 : periodo === "30d" ? 30 : 90;
     const desde = new Date();
     desde.setDate(desde.getDate() - dias);
@@ -59,13 +62,14 @@ export default function RelatoriosPage() {
     supabase
       .from("leads")
       .select("id, canal, utm_source, utm_medium, utm_campaign, utm_content, etapa, created_at, fbclid, gclid")
+      .eq("tenant_id", user.id)
       .gte("created_at", desde.toISOString())
       .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (data) setLeads(data);
         setLoading(false);
       });
-  }, [periodo]);
+  }, [user, periodo]);
 
   // --- Métricas gerais ---
   const total = leads.length;

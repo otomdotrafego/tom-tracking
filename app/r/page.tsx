@@ -15,13 +15,14 @@ export default function Redirect() {
       const utm_term = params.get("utm_term") || "";
       const whatsapp = params.get("wa") || "";
       const mensagem = params.get("msg") || "Olá, vim pelo anúncio!";
+      const tenant_id = params.get("tid") || null;
 
       if (!whatsapp) {
         console.error("Número de WhatsApp não informado");
         return;
       }
 
-      // Salva o lead no banco
+      // Salva o lead no banco com tenant_id do cliente
       await supabase.from("leads").insert({
         nome: "Lead WhatsApp",
         contato: whatsapp,
@@ -33,6 +34,7 @@ export default function Redirect() {
         utm_content,
         fbclid,
         etapa: "novo",
+        ...(tenant_id ? { tenant_id } : {}),
       });
 
       // Redireciona pro WhatsApp

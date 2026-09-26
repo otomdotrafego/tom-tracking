@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 
 type Lead = {
   id: string;
@@ -108,6 +109,7 @@ const card: React.CSSProperties = {
 };
 
 export default function JornadasPage() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadSelecionado, setLeadSelecionado] = useState<Lead | null>(null);
   const [busca, setBusca] = useState("");
@@ -119,9 +121,11 @@ export default function JornadasPage() {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) return;
     supabase
       .from("leads")
       .select("*")
+      .eq("tenant_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         if (data && data.length > 0) {
@@ -129,7 +133,7 @@ export default function JornadasPage() {
           selecionarLead(data[0]);
         }
       });
-  }, []);
+  }, [user]);
 
   async function selecionarLead(lead: Lead) {
     setLeadSelecionado(lead);
