@@ -1,0 +1,57 @@
+From 27a1512ff37bb86e9bdbf7783164e0ca82e0c815 Mon Sep 17 00:00:00 2001
+From: Tom Tracking <dev@tomtracking.com>
+Date: Sat, 26 Sep 2026 14:57:57 +0000
+Subject: [PATCH] =?UTF-8?q?fix:=20evento=20Lead=20dispara=20em=20Em=20conv?=
+ =?UTF-8?q?ersa,=20n=C3=A3o=20em=20Novo?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ app/jornadas/page.tsx    | 2 +-
+ components/Dashboard.tsx | 2 +-
+ components/LeadsPage.tsx | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/app/jornadas/page.tsx b/app/jornadas/page.tsx
+index 4cc6227..0c82618 100644
+--- a/app/jornadas/page.tsx
++++ b/app/jornadas/page.tsx
+@@ -62,7 +62,7 @@ const etapas = [
+ ];
+ 
+ const etapaParaEvento: Record<string, string | null> = {
+-  novo: "Lead", em_conversa: "Lead", qualificado: null,
++  novo: null, em_conversa: "Lead", qualificado: null,
+   agendado: "Schedule", negociando: null,
+   venda_fechada: "Purchase", nao_qualificado: null,
+ };
+diff --git a/components/Dashboard.tsx b/components/Dashboard.tsx
+index 40f7ec4..06f67c5 100644
+--- a/components/Dashboard.tsx
++++ b/components/Dashboard.tsx
+@@ -22,7 +22,7 @@ const canalIcon: Record<string, string> = {
+ };
+ 
+ const etapaParaEvento: Record<string, string | null> = {
+-  novo: "Lead",
++  novo: null,
+   em_conversa: "Lead",
+   qualificado: null,
+   agendado: "Schedule",
+diff --git a/components/LeadsPage.tsx b/components/LeadsPage.tsx
+index 7389c2c..232bba6 100644
+--- a/components/LeadsPage.tsx
++++ b/components/LeadsPage.tsx
+@@ -36,7 +36,7 @@ const canalIcon: Record<string, string> = {
+ };
+ 
+ const etapaParaEvento: Record<string, string | null> = {
+-  novo: "Lead",
++  novo: null,
+   em_conversa: "Lead",
+   qualificado: null,
+   agendado: "Schedule",
+-- 
+2.43.0
+

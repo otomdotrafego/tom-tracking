@@ -22,7 +22,7 @@ const canalIcon: Record<string, string> = {
 };
 
 const etapaParaEvento: Record<string, string | null> = {
-  novo: "Lead",
+  novo: null,
   em_conversa: "Lead",
   qualificado: null,
   agendado: "Schedule",

@@ -62,7 +62,7 @@ const etapas = [
 ];
 
 const etapaParaEvento: Record<string, string | null> = {
-  novo: "Lead", em_conversa: "Lead", qualificado: null,
+  novo: null, em_conversa: "Lead", qualificado: null,
   agendado: "Schedule", negociando: null,
   venda_fechada: "Purchase", nao_qualificado: null,
 };
