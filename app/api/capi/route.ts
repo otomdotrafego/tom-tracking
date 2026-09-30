@@ -80,7 +80,7 @@ async function enviarEventoMeta(
           value: 0,
         },
       },
-  ];
+    ],
   };
 
   const response = await fetch(
