@@ -153,6 +153,40 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", leadId);
 
+    // Dispara webhook do cliente se configurado para esta etapa
+    if (lead.tenant_id) {
+      const { data: perfil } = await supabase
+        .from("perfis")
+        .select("webhook_url, webhook_etapas")
+        .eq("id", lead.tenant_id)
+        .single();
+
+      if (perfil?.webhook_url && perfil?.webhook_etapas?.includes(lead.etapa)) {
+        try {
+          await fetch(perfil.webhook_url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              evento: "etapa_alterada",
+              etapa_nova: lead.etapa,
+              lead: {
+                id: lead.id,
+                nome: lead.nome,
+                contato: lead.contato,
+                canal: lead.canal,
+                campanha: lead.campanha,
+              },
+              timestamp: new Date().toISOString(),
+              source: "tom-tracking",
+            }),
+          });
+          console.log(`[WEBHOOK] Disparado para ${perfil.webhook_url} | Etapa: ${lead.etapa}`);
+        } catch (e) {
+          console.error("[WEBHOOK] Erro ao disparar:", e);
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, resultado });
   } catch (error) {
     console.error("CAPI error:", error);
