@@ -84,11 +84,11 @@ export default function IntegracoesPage() {
     setTestando(false);
   }
 
-  const abas = [
+  const abas: { key: "webhook" | "whatsapp" | "tomleads"; label: string; icon: string; ativo: boolean; breve?: boolean }[] = [
     { key: "webhook", label: "Webhook · CRM", icon: "ti-arrows-exchange", ativo: !!webhookUrl && webhookEtapas.length > 0 },
     { key: "whatsapp", label: "WhatsApp API", icon: "ti-brand-whatsapp", ativo: !!waToken && !!waPhoneId },
     { key: "tomleads", label: "Tom Leads", icon: "ti-layout-kanban", ativo: false, breve: true },
-  ] as const;
+  ];
 
   const inputStyle: React.CSSProperties = {
     background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6,
