@@ -49,6 +49,10 @@ export default function IntegracoesPage() {
   const [waPhoneId, setWaPhoneId] = useState("");
 
   // Evolution API
+  // Tom Leads
+  const [tomLeadsUrl, setTomLeadsUrl] = useState("");
+  const [tomLeadsKey, setTomLeadsKey] = useState("");
+
   const [evolutionUrl, setEvolutionUrl] = useState("");
   const [evolutionKey, setEvolutionKey] = useState("");
   const [evolutionInstance, setEvolutionInstance] = useState("");
@@ -60,7 +64,7 @@ export default function IntegracoesPage() {
   useEffect(() => {
     if (!user) return;
     supabase.from("perfis")
-      .select("webhook_url, webhook_etapas, whatsapp_api_token, whatsapp_phone_id, evolution_url, evolution_api_key, evolution_instance")
+      .select("webhook_url, webhook_etapas, whatsapp_api_token, whatsapp_phone_id, evolution_url, evolution_api_key, evolution_instance, tomleads_url, tomleads_api_key")
       .eq("id", user.id).single()
       .then(({ data }) => {
         if (data) {
@@ -69,6 +73,8 @@ export default function IntegracoesPage() {
           setWebhookEtapas(d.webhook_etapas || []);
           setWaToken(d.whatsapp_api_token || "");
           setWaPhoneId(d.whatsapp_phone_id || "");
+          setTomLeadsUrl(d.tomleads_url || "");
+          setTomLeadsKey(d.tomleads_api_key || "");
           setEvolutionUrl(d.evolution_url || "");
           setEvolutionKey(d.evolution_api_key || "");
           setEvolutionInstance(d.evolution_instance || "");
@@ -133,6 +139,19 @@ export default function IntegracoesPage() {
     setCarregandoQr(false);
   }
 
+  async function salvarTomLeads() {
+    if (!user) return;
+    setSalvando(true);
+    const { error } = await supabase.from("perfis").upsert({
+      id: user.id,
+      tomleads_url: tomLeadsUrl.trim() || null,
+      tomleads_api_key: tomLeadsKey.trim() || null,
+    });
+    setSalvando(false);
+    if (error) mostrarToast("Erro: " + error.message, "erro");
+    else mostrarToast("Tom Leads configurado!");
+  }
+
   async function salvarEvolution() {
     if (!user) return;
     setSalvando(true);
@@ -187,7 +206,7 @@ export default function IntegracoesPage() {
     { key: "webhook", label: "Webhook · CRM", icon: "ti-arrows-exchange", ativo: !!webhookUrl && webhookEtapas.length > 0 },
     { key: "whatsapp", label: "WhatsApp API", icon: "ti-brand-whatsapp", ativo: !!waToken && !!waPhoneId },
     { key: "evolution", label: "Evolution API", icon: "ti-robot", ativo: evolutionStatus === "conectado" },
-    { key: "tomleads", label: "Tom Leads", icon: "ti-layout-kanban", ativo: false, breve: true },
+    { key: "tomleads", label: "Tom Leads", icon: "ti-layout-kanban", ativo: !!tomLeadsUrl && !!tomLeadsKey },
   ];
 
   const statusEvolutionCor: Record<string, string> = {
@@ -211,21 +230,18 @@ export default function IntegracoesPage() {
           <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>Integrações</h1>
           <div style={{ display: "flex", gap: 2, overflowX: "auto" }}>
             {abas.map(a => (
-              <button key={a.key} onClick={() => !a.breve && setAba(a.key)}
+              <button key={a.key} onClick={() => setAba(a.key)}
                 style={{
                   display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
                   fontSize: 12, fontFamily: "inherit", background: "transparent", border: "none",
-                  cursor: a.breve ? "default" : "pointer", whiteSpace: "nowrap",
+                  cursor: "pointer", whiteSpace: "nowrap",
                   color: aba === a.key ? "var(--text)" : "var(--sub)",
                   borderBottom: aba === a.key ? "2px solid #4a9eca" : "2px solid transparent",
                   fontWeight: aba === a.key ? 600 : 400, opacity: a.breve ? 0.5 : 1,
                 }}>
                 <i className={`ti ${a.icon}`} style={{ fontSize: 14 }} />
                 {a.label}
-                {a.breve
-                  ? <span style={{ fontSize: 10, background: "var(--s3)", border: "1px solid var(--border)", borderRadius: 3, padding: "1px 5px", color: "var(--muted)" }}>Em breve</span>
-                  : <StatusDot ativo={a.ativo} />
-                }
+                <StatusDot ativo={a.ativo} />
               </button>
             ))}
           </div>
@@ -469,16 +485,54 @@ export default function IntegracoesPage() {
 
           {/* TOM LEADS */}
           {aba === "tomleads" && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
-              <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-                <i className="ti ti-layout-kanban" style={{ fontSize: 40, color: "var(--muted)" }} />
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>Tom Leads · Em breve</div>
-                <div style={{ fontSize: 13, color: "var(--sub)", maxWidth: 380, lineHeight: 1.6 }}>
-                  Integração nativa com o CRM Tom Leads. Um clique conecta os dois sistemas — leads, etapas e conversões sincronizados em tempo real.
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, maxWidth: 1100 }}>
+              <div style={{ ...card, display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <i className="ti ti-layout-kanban" style={{ fontSize: 18, color: "#4a9eca" }} />
+                  <div style={secTitle}>Tom Leads · CRM nativo</div>
                 </div>
-                <button disabled style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "10px 20px", fontSize: 13, color: "var(--muted)", cursor: "not-allowed", fontFamily: "inherit" }}>
-                  Conectar Tom Leads
+                <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6 }}>
+                  Conecte o Tom Tracking ao seu CRM Tom Leads. Quando um lead mudar de etapa em qualquer um dos sistemas, o outro é atualizado automaticamente.
+                </p>
+                <div style={campoStyle}>
+                  <label style={labelStyle}>URL do Tom Leads</label>
+                  <input style={inputStyle} value={tomLeadsUrl} onChange={e => setTomLeadsUrl(e.target.value)} placeholder="https://app.tomleads.com.br" />
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>URL da sua instância do Tom Leads</span>
+                </div>
+                <div style={campoStyle}>
+                  <label style={labelStyle}>API Key</label>
+                  <input style={inputStyle} type="password" value={tomLeadsKey} onChange={e => setTomLeadsKey(e.target.value)} placeholder="Chave de API do Tom Leads" />
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>Encontrada em Tom Leads → Configurações → API</span>
+                </div>
+                <button onClick={salvarTomLeads} disabled={salvando}
+                  style={{ background: "#4a9eca", border: "none", borderRadius: 6, padding: "9px 18px", fontSize: 13, color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", width: "fit-content" }}>
+                  {salvando ? "Salvando..." : "Salvar e conectar"}
                 </button>
+              </div>
+
+              <div style={{ ...card, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={secTitle}>O que sincroniza</div>
+                {[
+                  { icon: "ti-arrows-exchange", title: "Etapas em tempo real", desc: "Mova um lead no Tom Leads → atualiza no Tom Tracking e vice-versa" },
+                  { icon: "ti-user-plus", title: "Novos leads", desc: "Lead captado pelo Tom Tracking → criado automaticamente no Tom Leads" },
+                  { icon: "ti-brand-meta", title: "CAPI automático", desc: "Mudança de etapa no Tom Leads dispara evento Meta via Tom Tracking" },
+                  { icon: "ti-notes", title: "Anotações", desc: "Anotações criadas em um sistema aparecem no outro" },
+                ].map((s, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+                    <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: "#4a9eca", flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
+                      <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px", marginTop: 4 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--sub)", marginBottom: 6 }}>Webhook do Tom Tracking para o Tom Leads:</div>
+                  <code style={{ fontSize: 11, color: "#4a9eca", fontFamily: "monospace", wordBreak: "break-all" }}>
+                    {typeof window !== "undefined" ? window.location.origin : "https://tom-tracking.vercel.app"}/api/webhook
+                  </code>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>Configure este URL no Tom Leads para receber notificações de etapa</div>
+                </div>
               </div>
             </div>
           )}
