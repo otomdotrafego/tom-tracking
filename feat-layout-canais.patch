@@ -1,0 +1,995 @@
+From 56f472c9c4feed7229abc09a433b9b3dff05279f Mon Sep 17 00:00:00 2001
+From: Tom Tracking <dev@tomtracking.com>
+Date: Wed, 30 Sep 2026 23:42:37 +0000
+Subject: [PATCH] =?UTF-8?q?feat:=20layout=20full-width=20responsivo=20em?=
+ =?UTF-8?q?=20todas=20as=20p=C3=A1ginas=20de=20canal?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ app/google-ads/page.tsx | 132 ++++++++++++++++---------------
+ app/instagram/page.tsx  | 138 +++++++++++++++++++--------------
+ app/meta-ads/page.tsx   | 168 ++++++++++++++++++++++------------------
+ app/webhooks/page.tsx   | 147 +++++++++++++++++++----------------
+ app/whatsapp/page.tsx   | 130 ++++++++++++++++++-------------
+ 5 files changed, 398 insertions(+), 317 deletions(-)
+
+diff --git a/app/google-ads/page.tsx b/app/google-ads/page.tsx
+index e27cb86..85a4e1e 100644
+--- a/app/google-ads/page.tsx
++++ b/app/google-ads/page.tsx
+@@ -4,15 +4,12 @@ import Sidebar from "@/components/Sidebar";
+ import { supabase } from "@/lib/supabase";
+ import { useAuth } from "@/components/AuthProvider";
+ 
+-type Lead = { id: string; etapa: string; utm_campaign: string | null; gclid: string | null; };
++type Lead = { id: string; etapa: string; gclid: string | null; utm_campaign: string | null; };
+ 
+-function Stat({ label, value, cor }: { label: string; value: string | number; cor?: string }) {
+-  return (
+-    <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px 20px" }}>
+-      <div style={{ fontSize: 11, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>{label}</div>
+-      <div style={{ fontSize: 26, fontWeight: 700, color: cor || "var(--text)" }}>{value}</div>
+-    </div>
+-  );
++function useIsMobile() {
++  const [m, setM] = useState(false);
++  useEffect(() => { const c = () => setM(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
++  return m;
+ }
+ 
+ function CopyBtn({ text }: { text: string }) {
+@@ -27,6 +24,7 @@ function CopyBtn({ text }: { text: string }) {
+ 
+ export default function GoogleAdsPage() {
+   const { user } = useAuth();
++  const isMobile = useIsMobile();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [numero, setNumero] = useState("");
+   const [loading, setLoading] = useState(true);
+@@ -34,7 +32,7 @@ export default function GoogleAdsPage() {
+   useEffect(() => {
+     if (!user) return;
+     Promise.all([
+-      supabase.from("leads").select("id, etapa, utm_campaign, gclid").eq("tenant_id", user.id).eq("utm_source", "google"),
++      supabase.from("leads").select("id, etapa, gclid, utm_campaign").eq("tenant_id", user.id).eq("utm_source", "google"),
+       supabase.from("perfis").select("whatsapp_numero").eq("id", user.id).single(),
+     ]).then(([l, p]) => {
+       if (l.data) setLeads(l.data);
+@@ -50,74 +48,86 @@ export default function GoogleAdsPage() {
+   const origin = typeof window !== "undefined" ? window.location.origin : "https://tom-tracking.vercel.app";
+   const link = numero ? `${origin}/r?wa=${numero}&tid=${user?.id || ""}&utm_source=google&utm_medium=cpc&utm_campaign={campaignname}&gclid={gclid}` : "";
+ 
++  const card: React.CSSProperties = { background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: isMobile ? "14px 16px" : "18px 22px" };
++  const secTitle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 };
++
+   if (loading) return <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}><Sidebar /><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span></div></div>;
+ 
+   return (
+     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
+       <Sidebar />
+-      <main style={{ flex: 1, padding: "28px 28px 60px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
+-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+-          <i className="ti ti-brand-google" style={{ fontSize: 22, color: "#4285f4" }} />
++      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
++        <div style={{ padding: isMobile ? "14px 16px" : "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--s1)", display: "flex", alignItems: "center", gap: 10 }}>
++          <i className="ti ti-brand-google" style={{ fontSize: 20, color: "#4285f4" }} />
+           <div>
+-            <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>Google Ads</h1>
++            <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Google Ads</h1>
+             <p style={{ fontSize: 12, color: "var(--sub)" }}>Leads com utm_source=google</p>
+           </div>
+         </div>
+ 
+-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+-          <Stat label="Total de leads" value={total} />
+-          <Stat label="Com GCLID" value={comGclid} cor="#4285f4" />
+-          <Stat label="Vendas fechadas" value={vendas} cor="#4caf70" />
+-          <Stat label="Taxa de conversão" value={`${taxa}%`} cor="#f4b400" />
+-        </div>
+-
+-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Link para Google Ads</div>
+-            {link ? (<>
+-              <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
+-                <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
+-                <CopyBtn text={link} />
+-              </div>
+-              <div style={{ background: "#0d1a2e", border: "1px solid #1a3a5c", borderRadius: 6, padding: "12px 14px" }}>
+-                <div style={{ fontSize: 11, fontWeight: 600, color: "#4a9eca", marginBottom: 6 }}>⚡ ValueTrack automático</div>
+-                <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6, margin: 0 }}>
+-                  O parâmetro <code style={{ color: "#4a9eca" }}>{`{gclid}`}</code> é preenchido automaticamente pelo Google com o ID de clique. Cole este link no campo "URL final" do seu anúncio.
+-                </p>
+-              </div>
+-              <div style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px" }}>
+-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--sub)", marginBottom: 8 }}>Onde colar no Google Ads:</div>
+-                {[["URL final", "Campo do anúncio individual"], ["Modelo de rastreamento", "Configurações da campanha"], ["Sufixo de URL final", "Nível de conta ou campanha"]].map(([k, v]) => (
+-                  <div key={k} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 5 }}>
+-                    <span style={{ color: "#4285f4", minWidth: 160, fontWeight: 600 }}>{k}</span>
+-                    <span style={{ color: "var(--muted)" }}>{v}</span>
+-                  </div>
+-                ))}
++        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "14px 16px" : "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 12 }}>
++            {[
++              { label: "Total de leads", value: total, cor: "var(--text)" },
++              { label: "Com GCLID", value: comGclid, cor: "#4285f4" },
++              { label: "Vendas fechadas", value: vendas, cor: "#4caf70" },
++              { label: "Taxa de conversão", value: `${taxa}%`, cor: "#f4b400" },
++            ].map(s => (
++              <div key={s.label} style={card}>
++                <div style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{s.label}</div>
++                <div style={{ fontSize: 26, fontWeight: 700, color: s.cor }}>{s.value}</div>
+               </div>
+-            </>) : (
+-              <div style={{ fontSize: 13, color: "var(--muted)" }}>Configure seu número em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong>.</div>
+-            )}
++            ))}
+           </div>
+ 
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>O que é rastreado</div>
+-            {[
+-              { icon: "ti-click", title: "GCLID capturado", desc: "ID de clique do Google para atribuição precisa de conversões" },
+-              { icon: "ti-tag", title: "UTM Campaign", desc: "Nome da campanha preenchido via ValueTrack {campaignname}" },
+-              { icon: "ti-chart-line", title: "Conversões offline", desc: "Leads que viraram venda podem ser importados no Google Ads" },
+-              { icon: "ti-device-mobile", title: "Todos os dispositivos", desc: "Funciona em mobile, desktop e tablet" },
+-            ].map((s, i) => (
+-              <div key={i} style={{ display: "flex", gap: 10, padding: "10px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+-                <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: "#4285f4", flexShrink: 0, marginTop: 2 }} />
+-                <div>
+-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
+-                  <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 14 }}>
++              <div style={secTitle}>Link para Google Ads</div>
++              {link ? (<>
++                <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
++                  <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
++                  <CopyBtn text={link} />
+                 </div>
+-              </div>
+-            ))}
++                <div style={{ background: "#0d1a2e", border: "1px solid #1a3a5c", borderRadius: 6, padding: "12px 14px" }}>
++                  <div style={{ fontSize: 11, fontWeight: 600, color: "#4a9eca", marginBottom: 6 }}>⚡ ValueTrack automático</div>
++                  <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6, margin: 0 }}>
++                    Os parâmetros <code style={{ color: "#4a9eca" }}>{`{gclid}`}</code> e <code style={{ color: "#4a9eca" }}>{`{campaignname}`}</code> são preenchidos automaticamente pelo Google. Cole no campo <strong style={{ color: "var(--text)" }}>URL final</strong> do anúncio.
++                  </p>
++                </div>
++                <div style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px" }}>
++                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--sub)", marginBottom: 8 }}>Onde colar no Google Ads:</div>
++                  {[["URL final do anúncio", "Campo individual de cada anúncio"], ["Modelo de rastreamento", "Configurações da campanha"], ["Sufixo de URL final", "Nível de conta — aplica em todos"]].map(([k, v]) => (
++                    <div key={k} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 5 }}>
++                      <span style={{ color: "#4285f4", minWidth: 170, fontWeight: 600 }}>{k}</span>
++                      <span style={{ color: "var(--muted)" }}>{v}</span>
++                    </div>
++                  ))}
++                </div>
++              </>) : (
++                <div style={{ fontSize: 13, color: "var(--muted)" }}>Configure em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong>.</div>
++              )}
++            </div>
++
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 10 }}>
++              <div style={secTitle}>O que é rastreado</div>
++              {[
++                { icon: "ti-click", cor: "#4285f4", title: "GCLID capturado", desc: "ID de clique do Google para atribuição precisa de conversões" },
++                { icon: "ti-tag", cor: "#4285f4", title: "Campanha identificada", desc: "Nome da campanha preenchido via ValueTrack {campaignname}" },
++                { icon: "ti-chart-line", cor: "#4285f4", title: "Conversões offline", desc: "Futuramente: importar vendas fechadas de volta para o Google Ads" },
++                { icon: "ti-device-mobile", cor: "#4285f4", title: "Todos os dispositivos", desc: "Funciona em mobile, desktop e tablet" },
++              ].map((s, i) => (
++                <div key={i} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
++                  <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: s.cor, flexShrink: 0, marginTop: 2 }} />
++                  <div>
++                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
++                    <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++                  </div>
++                </div>
++              ))}
++            </div>
+           </div>
+         </div>
+-      </main>
++      </div>
+     </div>
+   );
+ }
+diff --git a/app/instagram/page.tsx b/app/instagram/page.tsx
+index 2023a5a..1240a8c 100644
+--- a/app/instagram/page.tsx
++++ b/app/instagram/page.tsx
+@@ -4,15 +4,12 @@ import Sidebar from "@/components/Sidebar";
+ import { supabase } from "@/lib/supabase";
+ import { useAuth } from "@/components/AuthProvider";
+ 
+-type Lead = { id: string; etapa: string; utm_campaign: string | null; utm_source: string | null; };
++type Lead = { id: string; etapa: string; utm_campaign: string | null; };
+ 
+-function Stat({ label, value, cor }: { label: string; value: string | number; cor?: string }) {
+-  return (
+-    <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px 20px" }}>
+-      <div style={{ fontSize: 11, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>{label}</div>
+-      <div style={{ fontSize: 26, fontWeight: 700, color: cor || "var(--text)" }}>{value}</div>
+-    </div>
+-  );
++function useIsMobile() {
++  const [m, setM] = useState(false);
++  useEffect(() => { const c = () => setM(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
++  return m;
+ }
+ 
+ function CopyBtn({ text }: { text: string }) {
+@@ -27,6 +24,7 @@ function CopyBtn({ text }: { text: string }) {
+ 
+ export default function InstagramPage() {
+   const { user } = useAuth();
++  const isMobile = useIsMobile();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [numero, setNumero] = useState("");
+   const [loading, setLoading] = useState(true);
+@@ -34,7 +32,7 @@ export default function InstagramPage() {
+   useEffect(() => {
+     if (!user) return;
+     Promise.all([
+-      supabase.from("leads").select("id, etapa, utm_campaign, utm_source").eq("tenant_id", user.id).eq("utm_source", "instagram"),
++      supabase.from("leads").select("id, etapa, utm_campaign").eq("tenant_id", user.id).eq("utm_source", "instagram"),
+       supabase.from("perfis").select("whatsapp_numero").eq("id", user.id).single(),
+     ]).then(([l, p]) => {
+       if (l.data) setLeads(l.data);
+@@ -47,70 +45,98 @@ export default function InstagramPage() {
+   const vendas = leads.filter(l => l.etapa === "venda_fechada").length;
+   const taxa = total > 0 ? ((vendas / total) * 100).toFixed(1) : "0";
+   const origin = typeof window !== "undefined" ? window.location.origin : "https://tom-tracking.vercel.app";
+-  const link = numero ? `${origin}/r?wa=${numero}&tid=${user?.id || ""}&utm_source=instagram&utm_medium=story&utm_campaign=` : "";
++  const linkStory = numero ? `${origin}/r?wa=${numero}&tid=${user?.id || ""}&utm_source=instagram&utm_medium=story&utm_campaign=` : "";
++  const linkBio = numero ? `${origin}/r?wa=${numero}&tid=${user?.id || ""}&utm_source=instagram&utm_medium=bio&utm_campaign=organico` : "";
++
++  const card: React.CSSProperties = { background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: isMobile ? "14px 16px" : "18px 22px" };
++  const secTitle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 };
+ 
+   if (loading) return <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}><Sidebar /><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span></div></div>;
+ 
+   return (
+     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
+       <Sidebar />
+-      <main style={{ flex: 1, padding: "28px 28px 60px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
+-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+-          <i className="ti ti-brand-instagram" style={{ fontSize: 22, color: "#e1306c" }} />
++      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
++        <div style={{ padding: isMobile ? "14px 16px" : "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--s1)", display: "flex", alignItems: "center", gap: 10 }}>
++          <i className="ti ti-brand-instagram" style={{ fontSize: 20, color: "#e1306c" }} />
+           <div>
+-            <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>Instagram</h1>
++            <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Instagram</h1>
+             <p style={{ fontSize: 12, color: "var(--sub)" }}>Leads com utm_source=instagram</p>
+           </div>
+         </div>
+ 
+-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+-          <Stat label="Total de leads" value={total} />
+-          <Stat label="Vendas fechadas" value={vendas} cor="#4caf70" />
+-          <Stat label="Taxa de conversão" value={`${taxa}%`} cor="#4a9eca" />
+-        </div>
+-
+-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Link para Instagram</div>
+-            {link ? (<>
+-              <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
+-                <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
+-                <CopyBtn text={link} />
+-              </div>
+-              <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6 }}>Use este link no botão de ação dos seus anúncios de Instagram Stories ou Feed. Os leads chegam marcados com utm_source=instagram.</p>
+-              <div style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px" }}>
+-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--sub)", marginBottom: 8 }}>Onde usar:</div>
+-                {[["Stories", "Link na bio ou swipe up"], ["Feed", "Botão de ação do anúncio"], ["Reels", "Link na bio"], ["DM automático", "Adicione ao botão de ação"]].map(([tipo, desc]) => (
+-                  <div key={tipo} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 6 }}>
+-                    <span style={{ color: "#e1306c", minWidth: 80, fontWeight: 600 }}>{tipo}</span>
+-                    <span style={{ color: "var(--muted)" }}>{desc}</span>
+-                  </div>
+-                ))}
++        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "14px 16px" : "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(3,1fr)", gap: 12 }}>
++            {[
++              { label: "Total de leads", value: total, cor: "var(--text)" },
++              { label: "Vendas fechadas", value: vendas, cor: "#4caf70" },
++              { label: "Taxa de conversão", value: `${taxa}%`, cor: "#4a9eca" },
++            ].map(s => (
++              <div key={s.label} style={card}>
++                <div style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{s.label}</div>
++                <div style={{ fontSize: 26, fontWeight: 700, color: s.cor }}>{s.value}</div>
+               </div>
+-            </>) : (
+-              <div style={{ fontSize: 13, color: "var(--muted)", padding: "8px 0" }}>Configure seu número em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong> para gerar o link.</div>
+-            )}
++            ))}
+           </div>
+ 
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Dicas de rastreamento</div>
+-            {[
+-              { icon: "ti-camera", title: "Stories com swipe up", desc: "Use utm_medium=story para identificar o formato" },
+-              { icon: "ti-photo", title: "Anúncios no Feed", desc: "Use utm_medium=cpc e utm_campaign com o nome do conjunto" },
+-              { icon: "ti-video", title: "Reels patrocinados", desc: "Use utm_medium=reels para separar do feed" },
+-              { icon: "ti-link", title: "Link na bio", desc: "Use utm_medium=organic para rastrear tráfego orgânico" },
+-            ].map((s, i) => (
+-              <div key={i} style={{ display: "flex", gap: 10, padding: "10px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+-                <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: "#e1306c", flexShrink: 0, marginTop: 2 }} />
+-                <div>
+-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
+-                  <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
++            {/* Links */}
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 16 }}>
++              <div style={secTitle}>Links rastreáveis</div>
++
++              {numero ? (<>
++                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
++                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>Stories / Reels</div>
++                  <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
++                    <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{linkStory}</span>
++                    <CopyBtn text={linkStory} />
++                  </div>
++                  <div style={{ fontSize: 11, color: "var(--muted)" }}>Use no botão de ação dos Stories e Reels patrocinados</div>
+                 </div>
+-              </div>
+-            ))}
++
++                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
++                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>Link na bio</div>
++                  <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
++                    <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{linkBio}</span>
++                    <CopyBtn text={linkBio} />
++                  </div>
++                  <div style={{ fontSize: 11, color: "var(--muted)" }}>Cole na bio do perfil para rastrear tráfego orgânico</div>
++                </div>
++
++                <div style={{ background: "#1e0d0d", border: "1px solid #5a2a2a", borderRadius: 6, padding: "12px 14px" }}>
++                  <div style={{ fontSize: 11, fontWeight: 600, color: "#c46060", marginBottom: 6 }}>⚠ Limitação no Instagram Feed e Direct</div>
++                  <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
++                    Anúncios com botão nativo de WhatsApp no Feed e Direct não permitem link customizado. Para rastrear esses leads, ative a <strong style={{ color: "var(--text)" }}>WhatsApp Business API</strong> em Integrações — ela captura o anúncio de origem automaticamente.
++                  </p>
++                </div>
++              </>) : (
++                <div style={{ fontSize: 13, color: "var(--muted)" }}>Configure seu número em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong>.</div>
++              )}
++            </div>
++
++            {/* O que funciona */}
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 10 }}>
++              <div style={secTitle}>O que rastreia no Instagram</div>
++              {[
++                { icon: "ti-camera", cor: "#e1306c", ok: true, title: "Stories patrocinados", desc: "Link rastreável no botão de ação — funciona perfeitamente" },
++                { icon: "ti-video", cor: "#e1306c", ok: true, title: "Reels patrocinados", desc: "Link rastreável no botão de ação" },
++                { icon: "ti-link", cor: "#e1306c", ok: true, title: "Link na bio", desc: "Rastreia cliques orgânicos do perfil" },
++                { icon: "ti-photo", cor: "#888", ok: false, title: "Feed com botão WhatsApp", desc: "Não suporta link customizado — usar WhatsApp API" },
++                { icon: "ti-message", cor: "#888", ok: false, title: "Direct com botão WhatsApp", desc: "Não suporta link customizado — usar WhatsApp API" },
++              ].map((s, i) => (
++                <div key={i} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: `1px solid ${s.ok ? "var(--border)" : "#5a2a2a"}` }}>
++                  <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: s.cor, flexShrink: 0, marginTop: 2 }} />
++                  <div style={{ flex: 1 }}>
++                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
++                    <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++                  </div>
++                  <span style={{ fontSize: 10, fontWeight: 600, color: s.ok ? "#4caf70" : "#c46060", flexShrink: 0, alignSelf: "center" }}>{s.ok ? "✓ OK" : "⚠ API"}</span>
++                </div>
++              ))}
++            </div>
+           </div>
+         </div>
+-      </main>
++      </div>
+     </div>
+   );
+ }
+diff --git a/app/meta-ads/page.tsx b/app/meta-ads/page.tsx
+index dc15852..0355e2a 100644
+--- a/app/meta-ads/page.tsx
++++ b/app/meta-ads/page.tsx
+@@ -4,16 +4,13 @@ import Sidebar from "@/components/Sidebar";
+ import { supabase } from "@/lib/supabase";
+ import { useAuth } from "@/components/AuthProvider";
+ 
+-type Lead = { id: string; etapa: string; utm_campaign: string | null; fbclid: string | null; evento_meta: string[] | null; };
++type Lead = { id: string; etapa: string; fbclid: string | null; evento_meta: string[] | null; };
+ type Perfil = { meta_pixel_id: string | null; meta_access_token: string | null; whatsapp_numero: string | null; };
+ 
+-function Stat({ label, value, cor }: { label: string; value: string | number; cor?: string }) {
+-  return (
+-    <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px 20px" }}>
+-      <div style={{ fontSize: 11, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>{label}</div>
+-      <div style={{ fontSize: 26, fontWeight: 700, color: cor || "var(--text)" }}>{value}</div>
+-    </div>
+-  );
++function useIsMobile() {
++  const [m, setM] = useState(false);
++  useEffect(() => { const c = () => setM(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
++  return m;
+ }
+ 
+ function CopyBtn({ text }: { text: string }) {
+@@ -28,6 +25,7 @@ function CopyBtn({ text }: { text: string }) {
+ 
+ export default function MetaAdsPage() {
+   const { user } = useAuth();
++  const isMobile = useIsMobile();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [perfil, setPerfil] = useState<Perfil | null>(null);
+   const [loading, setLoading] = useState(true);
+@@ -35,7 +33,7 @@ export default function MetaAdsPage() {
+   useEffect(() => {
+     if (!user) return;
+     Promise.all([
+-      supabase.from("leads").select("id, etapa, utm_campaign, fbclid, evento_meta").eq("tenant_id", user.id).eq("utm_source", "facebook"),
++      supabase.from("leads").select("id, etapa, fbclid, evento_meta").eq("tenant_id", user.id).eq("utm_source", "facebook"),
+       supabase.from("perfis").select("meta_pixel_id, meta_access_token, whatsapp_numero").eq("id", user.id).single(),
+     ]).then(([l, p]) => {
+       if (l.data) setLeads(l.data);
+@@ -54,93 +52,109 @@ export default function MetaAdsPage() {
+   const origin = typeof window !== "undefined" ? window.location.origin : "https://tom-tracking.vercel.app";
+   const link = numero ? `${origin}/r?wa=${numero}&tid=${user?.id || ""}&utm_source=facebook&utm_medium=cpc&utm_campaign=` : "";
+ 
++  const card: React.CSSProperties = { background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: isMobile ? "14px 16px" : "18px 22px" };
++  const secTitle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 };
++
+   if (loading) return <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}><Sidebar /><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span></div></div>;
+ 
+   return (
+     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
+       <Sidebar />
+-      <main style={{ flex: 1, padding: "28px 28px 60px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
+-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+-          <i className="ti ti-brand-meta" style={{ fontSize: 22, color: "#1877f2" }} />
++      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
++        <div style={{ padding: isMobile ? "14px 16px" : "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--s1)", display: "flex", alignItems: "center", gap: 10 }}>
++          <i className="ti ti-brand-meta" style={{ fontSize: 20, color: "#1877f2" }} />
+           <div>
+-            <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>Meta Ads</h1>
++            <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Meta Ads</h1>
+             <p style={{ fontSize: 12, color: "var(--sub)" }}>Facebook, Instagram e Audience Network</p>
+           </div>
+         </div>
+ 
+-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+-          <Stat label="Total de leads" value={total} />
+-          <Stat label="Com FBCLID" value={comFbclid} cor="#1877f2" />
+-          <Stat label="Vendas fechadas" value={vendas} cor="#4caf70" />
+-          <Stat label="Eventos CAPI" value={totalEventos} cor="#f4b400" />
+-        </div>
+-
+-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+-          {/* Status CAPI + Link */}
+-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+-            {/* Status do Pixel */}
+-            <div style={{ background: "var(--s1)", border: `1px solid ${pixelAtivo ? "#2a5a38" : "var(--border)"}`, borderRadius: 8, padding: "16px 20px" }}>
+-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Pixel · CAPI</div>
+-                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: pixelAtivo ? "#4caf70" : "var(--muted)" }}>
+-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: pixelAtivo ? "#4caf70" : "var(--muted)", display: "inline-block" }} />
+-                  {pixelAtivo ? "Configurado" : "Não configurado"}
+-                </span>
++        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "14px 16px" : "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 12 }}>
++            {[
++              { label: "Leads Meta", value: total, cor: "var(--text)" },
++              { label: "Com FBCLID", value: comFbclid, cor: "#1877f2" },
++              { label: "Vendas fechadas", value: vendas, cor: "#4caf70" },
++              { label: "Eventos CAPI", value: totalEventos, cor: "#f4b400" },
++            ].map(s => (
++              <div key={s.label} style={card}>
++                <div style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{s.label}</div>
++                <div style={{ fontSize: 26, fontWeight: 700, color: s.cor }}>{s.value}</div>
+               </div>
+-              {pixelAtivo ? (
+-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+-                  <div style={{ fontSize: 12, color: "var(--sub)" }}>Pixel ID: <code style={{ color: "var(--text)", fontFamily: "monospace" }}>{perfil?.meta_pixel_id}</code></div>
+-                  <div style={{ fontSize: 12, color: "var(--sub)" }}>Token: <code style={{ color: "#4caf70", fontFamily: "monospace" }}>●●●●●●●●</code></div>
+-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Eventos disparados automaticamente ao mover etapas</div>
+-                </div>
+-              ) : (
+-                <div style={{ fontSize: 12, color: "var(--muted)" }}>Configure em <strong style={{ color: "var(--text)" }}>Configurações → Meta Ads</strong> para ativar o CAPI.</div>
+-              )}
+-            </div>
++            ))}
++          </div>
+ 
+-            {/* Link */}
+-            <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Link rastreável</div>
+-              {link ? (<>
+-                <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
+-                  <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
+-                  <CopyBtn text={link} />
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
++            {/* Esquerda */}
++            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
++              {/* Status Pixel */}
++              <div style={{ ...card, border: `1px solid ${pixelAtivo ? "#2a5a38" : "var(--border)"}` }}>
++                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
++                  <div style={secTitle}>Pixel · CAPI</div>
++                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: pixelAtivo ? "#4caf70" : "var(--muted)" }}>
++                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: pixelAtivo ? "#4caf70" : "var(--muted)", display: "inline-block" }} />
++                    {pixelAtivo ? "Configurado" : "Não configurado"}
++                  </span>
+                 </div>
+-                <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6 }}>Cole no campo "URL do site" do seu anúncio. O FBCLID é capturado automaticamente pelo Meta.</p>
+-              </>) : (
+-                <div style={{ fontSize: 12, color: "var(--muted)" }}>Configure o número em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong>.</div>
+-              )}
+-            </div>
+-          </div>
++                {pixelAtivo ? (
++                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
++                    <div style={{ fontSize: 12, color: "var(--sub)" }}>Pixel ID: <code style={{ color: "var(--text)", fontFamily: "monospace" }}>{perfil?.meta_pixel_id}</code></div>
++                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Eventos disparados ao mover etapas do lead</div>
++                  </div>
++                ) : (
++                  <div style={{ fontSize: 12, color: "var(--muted)" }}>Configure em <strong style={{ color: "var(--text)" }}>Configurações → Meta Ads</strong>.</div>
++                )}
++              </div>
+ 
+-          {/* Eventos CAPI */}
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Eventos CAPI disparados</div>
+-            {[
+-              { evento: "Lead", etapa: "Em conversa", desc: "Lead confirmou contato" },
+-              { evento: "Schedule", etapa: "Agendado", desc: "Lead agendou atendimento" },
+-              { evento: "Purchase", etapa: "Venda fechada", desc: "Conversão confirmada" },
+-            ].map(s => {
+-              const count = leads.filter(l => l.evento_meta?.includes(s.evento)).length;
+-              return (
+-                <div key={s.evento} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+-                  <div style={{ minWidth: 70, textAlign: "center" }}>
+-                    <div style={{ fontSize: 20, fontWeight: 700, color: "#1877f2" }}>{count}</div>
+-                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>{s.evento}</div>
++              {/* Link */}
++              <div style={{ ...card, display: "flex", flexDirection: "column", gap: 12 }}>
++                <div style={secTitle}>Link rastreável</div>
++                {link ? (<>
++                  <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
++                    <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
++                    <CopyBtn text={link} />
+                   </div>
+-                  <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 12 }}>
+-                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>Etapa: {s.etapa}</div>
+-                    <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++                  <div style={{ background: "#1e0d0d", border: "1px solid #5a2a2a", borderRadius: 6, padding: "12px 14px" }}>
++                    <div style={{ fontSize: 11, fontWeight: 600, color: "#c46060", marginBottom: 6 }}>⚠ Click-to-WhatsApp</div>
++                    <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
++                      Anúncios com botão nativo de WhatsApp no Meta não permitem link customizado. Ative a <strong style={{ color: "var(--text)" }}>WhatsApp Business API</strong> em Integrações para rastrear esses leads automaticamente via webhook.
++                    </p>
+                   </div>
+-                </div>
+-              );
+-            })}
+-            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, padding: "10px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+-              Os eventos são enviados via API de Conversões (CAPI) server-side, com maior precisão que o Pixel padrão.
++                </>) : (
++                  <div style={{ fontSize: 12, color: "var(--muted)" }}>Configure em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong>.</div>
++                )}
++              </div>
++            </div>
++
++            {/* Direita — Eventos CAPI */}
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 10 }}>
++              <div style={secTitle}>Eventos CAPI disparados</div>
++              {[
++                { evento: "Lead", etapa: "Em conversa", desc: "Lead confirmou contato", cor: "#4a9eca" },
++                { evento: "Schedule", etapa: "Agendado", desc: "Agendamento confirmado", cor: "#f4b400" },
++                { evento: "Purchase", etapa: "Venda fechada", desc: "Conversão confirmada", cor: "#4caf70" },
++              ].map(s => {
++                const count = leads.filter(l => l.evento_meta?.includes(s.evento)).length;
++                return (
++                  <div key={s.evento} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
++                    <div style={{ minWidth: 52, textAlign: "center" }}>
++                      <div style={{ fontSize: 22, fontWeight: 700, color: s.cor }}>{count}</div>
++                      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>{s.evento}</div>
++                    </div>
++                    <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 12 }}>
++                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>Etapa: {s.etapa}</div>
++                      <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++                    </div>
++                  </div>
++                );
++              })}
++              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)", lineHeight: 1.6 }}>
++                Eventos enviados via API de Conversões (CAPI) server-side — mais precisos que o Pixel padrão e resistentes a bloqueadores de anúncio.
++              </div>
+             </div>
+           </div>
+         </div>
+-      </main>
++      </div>
+     </div>
+   );
+ }
+diff --git a/app/webhooks/page.tsx b/app/webhooks/page.tsx
+index 30b4b3f..f7452f7 100644
+--- a/app/webhooks/page.tsx
++++ b/app/webhooks/page.tsx
+@@ -6,6 +6,12 @@ import { useAuth } from "@/components/AuthProvider";
+ 
+ type Lead = { id: string; nome: string; etapa: string; created_at: string; canal: string; };
+ 
++function useIsMobile() {
++  const [m, setM] = useState(false);
++  useEffect(() => { const c = () => setM(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
++  return m;
++}
++
+ const ETAPA_LABEL: Record<string, string> = {
+   novo: "Novo", em_conversa: "Em conversa", qualificado: "Qualificado",
+   agendado: "Agendado", negociando: "Negociando", venda_fechada: "Venda fechada", nao_qualificado: "Não qualificado",
+@@ -13,6 +19,7 @@ const ETAPA_LABEL: Record<string, string> = {
+ 
+ export default function WebhooksPage() {
+   const { user } = useAuth();
++  const isMobile = useIsMobile();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [webhookUrl, setWebhookUrl] = useState("");
+   const [webhookEtapas, setWebhookEtapas] = useState<string[]>([]);
+@@ -21,7 +28,7 @@ export default function WebhooksPage() {
+   useEffect(() => {
+     if (!user) return;
+     Promise.all([
+-      supabase.from("leads").select("id, nome, etapa, created_at, canal").eq("tenant_id", user.id).order("created_at", { ascending: false }).limit(20),
++      supabase.from("leads").select("id, nome, etapa, created_at, canal").eq("tenant_id", user.id).order("created_at", { ascending: false }).limit(30),
+       supabase.from("perfis").select("webhook_url, webhook_etapas").eq("id", user.id).single(),
+     ]).then(([l, p]) => {
+       if (l.data) setLeads(l.data);
+@@ -31,63 +38,66 @@ export default function WebhooksPage() {
+   }, [user]);
+ 
+   const ativo = !!webhookUrl && webhookEtapas.length > 0;
+-  const leadsComWebhook = leads.filter(l => webhookEtapas.includes(l.etapa));
++  const leadsElegiveis = leads.filter(l => webhookEtapas.includes(l.etapa));
+ 
+   function formatData(iso: string) {
+     return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+   }
+ 
++  const card: React.CSSProperties = { background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: isMobile ? "14px 16px" : "18px 22px" };
++  const secTitle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 };
++
+   if (loading) return <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}><Sidebar /><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span></div></div>;
+ 
+   return (
+     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
+       <Sidebar />
+-      <main style={{ flex: 1, padding: "28px 28px 60px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
+-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+-          <i className="ti ti-webhook" style={{ fontSize: 22, color: "#b8a832" }} />
++      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
++        <div style={{ padding: isMobile ? "14px 16px" : "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--s1)", display: "flex", alignItems: "center", gap: 10 }}>
++          <i className="ti ti-webhook" style={{ fontSize: 20, color: "#b8a832" }} />
+           <div>
+-            <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>Webhooks</h1>
++            <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Webhooks</h1>
+             <p style={{ fontSize: 12, color: "var(--sub)" }}>Notificações enviadas para sistemas externos</p>
+           </div>
+         </div>
+ 
+-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+-          {/* Status e config */}
+-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+-            <div style={{ background: "var(--s1)", border: `1px solid ${ativo ? "#2a5a38" : "var(--border)"}`, borderRadius: 8, padding: "18px 20px" }}>
+-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Status</div>
+-                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: ativo ? "#4caf70" : "var(--muted)" }}>
+-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: ativo ? "#4caf70" : "var(--muted)", display: "inline-block" }} />
+-                  {ativo ? "Ativo" : "Não configurado"}
+-                </span>
+-              </div>
+-              {ativo ? (
+-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+-                  <div>
+-                    <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 4 }}>URL destino:</div>
+-                    <div style={{ fontSize: 12, color: "var(--text)", fontFamily: "monospace", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 5, padding: "7px 10px", wordBreak: "break-all" }}>{webhookUrl}</div>
+-                  </div>
+-                  <div>
+-                    <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>Dispara nas etapas:</div>
+-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+-                      {webhookEtapas.map(e => (
+-                        <span key={e} style={{ fontSize: 11, background: "#0d1e14", border: "1px solid #2a5a38", color: "#4caf70", borderRadius: 4, padding: "3px 8px" }}>{ETAPA_LABEL[e] || e}</span>
+-                      ))}
++        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "14px 16px" : "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
++            {/* Status e payload */}
++            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
++              <div style={{ ...card, border: `1px solid ${ativo ? "#2a5a38" : "var(--border)"}` }}>
++                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
++                  <div style={secTitle}>Status</div>
++                  <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: ativo ? "#4caf70" : "var(--muted)" }}>
++                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: ativo ? "#4caf70" : "var(--muted)", display: "inline-block" }} />
++                    {ativo ? "Ativo" : "Não configurado"}
++                  </span>
++                </div>
++                {ativo ? (
++                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
++                    <div>
++                      <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 4 }}>URL destino:</div>
++                      <div style={{ fontSize: 12, color: "var(--text)", fontFamily: "monospace", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 5, padding: "7px 10px", wordBreak: "break-all" }}>{webhookUrl}</div>
++                    </div>
++                    <div>
++                      <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>Dispara nas etapas:</div>
++                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
++                        {webhookEtapas.map(e => (
++                          <span key={e} style={{ fontSize: 11, background: "#0d1e14", border: "1px solid #2a5a38", color: "#4caf70", borderRadius: 4, padding: "3px 8px" }}>{ETAPA_LABEL[e] || e}</span>
++                        ))}
++                      </div>
+                     </div>
+                   </div>
+-                </div>
+-              ) : (
+-                <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
+-                  Configure a URL do webhook em <strong style={{ color: "var(--text)" }}>Integrações → Webhook</strong> e selecione as etapas que devem disparar a notificação.
+-                </div>
+-              )}
+-            </div>
++                ) : (
++                  <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>
++                    Configure a URL em <strong style={{ color: "var(--text)" }}>Integrações → Webhook</strong>.
++                  </div>
++                )}
++              </div>
+ 
+-            {/* Payload */}
+-            <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px" }}>
+-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>Payload enviado</div>
+-              <pre style={{ fontSize: 11, color: "#4caf70", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px", margin: 0, fontFamily: "monospace", lineHeight: 1.7, overflow: "auto" }}>{`{
++              <div style={card}>
++                <div style={secTitle}>Payload enviado</div>
++                <pre style={{ fontSize: 11, color: "#4caf70", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px", margin: 0, fontFamily: "monospace", lineHeight: 1.7, overflow: "auto" }}>{`{
+   "evento": "etapa_alterada",
+   "etapa_anterior": "novo",
+   "etapa_nova": "em_conversa",
+@@ -101,40 +111,41 @@ export default function WebhooksPage() {
+   "timestamp": "2024-01-01T00:00:00Z",
+   "source": "tom-tracking"
+ }`}</pre>
++              </div>
+             </div>
+-          </div>
+ 
+-          {/* Log de leads */}
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Últimos leads elegíveis</div>
+-              <span style={{ fontSize: 11, color: "var(--muted)" }}>{leadsComWebhook.length} registros</span>
+-            </div>
+-            {!ativo ? (
+-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13, padding: "40px 0" }}>
+-                Configure o webhook para ver os eventos
++            {/* Log */}
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 12 }}>
++              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
++                <div style={secTitle}>Leads elegíveis para webhook</div>
++                <span style={{ fontSize: 11, color: "var(--muted)" }}>{leadsElegiveis.length} registros</span>
+               </div>
+-            ) : leadsComWebhook.length === 0 ? (
+-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13, padding: "40px 0" }}>
+-                Nenhum lead nas etapas selecionadas ainda
+-              </div>
+-            ) : (
+-              <div style={{ display: "flex", flexDirection: "column", gap: 8, overflow: "auto", maxHeight: 380 }}>
+-                {leadsComWebhook.map(l => (
+-                  <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+-                    <i className="ti ti-send" style={{ fontSize: 14, color: "#4caf70", flexShrink: 0 }} />
+-                    <div style={{ flex: 1, minWidth: 0 }}>
+-                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.nome}</div>
+-                      <div style={{ fontSize: 11, color: "var(--sub)" }}>{ETAPA_LABEL[l.etapa]} · {l.canal}</div>
++              {!ativo ? (
++                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13, padding: "40px 0", textAlign: "center" }}>
++                  Configure o webhook para ver os eventos
++                </div>
++              ) : leadsElegiveis.length === 0 ? (
++                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13, padding: "40px 0" }}>
++                  Nenhum lead nas etapas selecionadas
++                </div>
++              ) : (
++                <div style={{ display: "flex", flexDirection: "column", gap: 8, overflow: "auto" }}>
++                  {leadsElegiveis.map(l => (
++                    <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
++                      <i className="ti ti-send" style={{ fontSize: 13, color: "#4caf70", flexShrink: 0 }} />
++                      <div style={{ flex: 1, minWidth: 0 }}>
++                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.nome}</div>
++                        <div style={{ fontSize: 11, color: "var(--sub)" }}>{ETAPA_LABEL[l.etapa]} · {l.canal}</div>
++                      </div>
++                      <div style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{formatData(l.created_at)}</div>
+                     </div>
+-                    <div style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{formatData(l.created_at)}</div>
+-                  </div>
+-                ))}
+-              </div>
+-            )}
++                  ))}
++                </div>
++              )}
++            </div>
+           </div>
+         </div>
+-      </main>
++      </div>
+     </div>
+   );
+ }
+diff --git a/app/whatsapp/page.tsx b/app/whatsapp/page.tsx
+index 5a66b37..55a85c1 100644
+--- a/app/whatsapp/page.tsx
++++ b/app/whatsapp/page.tsx
+@@ -6,13 +6,10 @@ import { useAuth } from "@/components/AuthProvider";
+ 
+ type Lead = { id: string; etapa: string; utm_campaign: string | null; };
+ 
+-function Stat({ label, value, cor }: { label: string; value: string | number; cor?: string }) {
+-  return (
+-    <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px 20px" }}>
+-      <div style={{ fontSize: 11, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, marginBottom: 8 }}>{label}</div>
+-      <div style={{ fontSize: 26, fontWeight: 700, color: cor || "var(--text)" }}>{value}</div>
+-    </div>
+-  );
++function useIsMobile() {
++  const [m, setM] = useState(false);
++  useEffect(() => { const c = () => setM(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
++  return m;
+ }
+ 
+ function CopyBtn({ text }: { text: string }) {
+@@ -27,6 +24,7 @@ function CopyBtn({ text }: { text: string }) {
+ 
+ export default function WhatsAppPage() {
+   const { user } = useAuth();
++  const isMobile = useIsMobile();
+   const [leads, setLeads] = useState<Lead[]>([]);
+   const [numero, setNumero] = useState("");
+   const [loading, setLoading] = useState(true);
+@@ -45,74 +43,96 @@ export default function WhatsAppPage() {
+ 
+   const total = leads.length;
+   const vendas = leads.filter(l => l.etapa === "venda_fechada").length;
++  const emConversa = leads.filter(l => l.etapa === "em_conversa").length;
+   const taxa = total > 0 ? ((vendas / total) * 100).toFixed(1) : "0";
+   const origin = typeof window !== "undefined" ? window.location.origin : "https://tom-tracking.vercel.app";
+   const link = numero ? `${origin}/r?wa=${numero}&tid=${user?.id || ""}&utm_source=facebook&utm_medium=cpc&utm_campaign=` : "";
+ 
++  const card: React.CSSProperties = { background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: isMobile ? "14px 16px" : "18px 22px" };
++  const secTitle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 };
++
+   if (loading) return <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}><Sidebar /><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span></div></div>;
+ 
+   return (
+     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
+       <Sidebar />
+-      <main style={{ flex: 1, padding: "28px 28px 60px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
+-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+-          <i className="ti ti-brand-whatsapp" style={{ fontSize: 22, color: "#25d366" }} />
++      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
++        {/* Header */}
++        <div style={{ padding: isMobile ? "14px 16px" : "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--s1)", display: "flex", alignItems: "center", gap: 10 }}>
++          <i className="ti ti-brand-whatsapp" style={{ fontSize: 20, color: "#25d366" }} />
+           <div>
+-            <h1 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)" }}>WhatsApp</h1>
++            <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>WhatsApp</h1>
+             <p style={{ fontSize: 12, color: "var(--sub)" }}>Leads captados via link rastreável</p>
+           </div>
+         </div>
+ 
+-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+-          <Stat label="Total de leads" value={total} />
+-          <Stat label="Vendas fechadas" value={vendas} cor="#4caf70" />
+-          <Stat label="Taxa de conversão" value={`${taxa}%`} cor="#4a9eca" />
+-        </div>
+-
+-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+-          {/* Link rastreável */}
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Link rastreável</div>
+-            {link ? (<>
+-              <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
+-                <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
+-                <CopyBtn text={link} />
+-              </div>
+-              <p style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6 }}>Use este link nos seus anúncios. Ele captura UTMs, redireciona para o WhatsApp e registra o lead automaticamente.</p>
+-              <div style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+-                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--sub)", marginBottom: 4 }}>Parâmetros UTM sugeridos:</div>
+-                {[["utm_source", "facebook / google / instagram"], ["utm_medium", "cpc / organic / story"], ["utm_campaign", "nome-da-campanha"]].map(([k, v]) => (
+-                  <div key={k} style={{ display: "flex", gap: 8, fontSize: 12 }}>
+-                    <code style={{ color: "#4a9eca", fontFamily: "monospace", minWidth: 130 }}>{k}</code>
+-                    <span style={{ color: "var(--muted)" }}>{v}</span>
+-                  </div>
+-                ))}
++        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "14px 16px" : "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
++          {/* Stats */}
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 12 }}>
++            {[
++              { label: "Total de leads", value: total, cor: "var(--text)" },
++              { label: "Em conversa", value: emConversa, cor: "#f4b400" },
++              { label: "Vendas fechadas", value: vendas, cor: "#4caf70" },
++              { label: "Taxa de conversão", value: `${taxa}%`, cor: "#4a9eca" },
++            ].map(s => (
++              <div key={s.label} style={card}>
++                <div style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{s.label}</div>
++                <div style={{ fontSize: 26, fontWeight: 700, color: s.cor }}>{s.value}</div>
+               </div>
+-            </>) : (
+-              <div style={{ fontSize: 13, color: "var(--muted)", padding: "8px 0" }}>Configure seu número em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong> para gerar o link.</div>
+-            )}
++            ))}
+           </div>
+ 
+-          {/* Como funciona */}
+-          <div style={{ background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--sub)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Como funciona</div>
+-            {[
+-              { icon: "ti-ad", title: "Anúncio com link rastreável", desc: "Cole o link nos seus anúncios no Meta ou Google" },
+-              { icon: "ti-click", title: "Lead clica no anúncio", desc: "Redirecionado automaticamente para o WhatsApp" },
+-              { icon: "ti-database", title: "Lead registrado", desc: "Canal, campanha e UTMs salvos no Tom Tracking" },
+-              { icon: "ti-brand-meta", title: "CAPI disparado", desc: "Evento Lead enviado ao Meta quando mover a etapa" },
+-            ].map((s, i) => (
+-              <div key={i} style={{ display: "flex", gap: 10, padding: "10px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
+-                <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: "#25d366", flexShrink: 0, marginTop: 2 }} />
+-                <div>
+-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
+-                  <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++          {/* Conteúdo 2 colunas */}
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
++            {/* Link rastreável */}
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 14 }}>
++              <div style={secTitle}>Link rastreável</div>
++              {link ? (<>
++                <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 6, padding: "9px 12px" }}>
++                  <span style={{ fontSize: 11, color: "var(--sub)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "monospace" }}>{link}</span>
++                  <CopyBtn text={link} />
+                 </div>
+-              </div>
+-            ))}
++                <div style={{ background: "#1a1a0a", border: "1px solid #3a3a10", borderRadius: 6, padding: "12px 14px" }}>
++                  <div style={{ fontSize: 11, fontWeight: 600, color: "#b8a832", marginBottom: 6 }}>⚡ Onde usar este link</div>
++                  {[["Google Ads", "URL final do anúncio — funciona perfeitamente"], ["Meta Stories", "Swipe up ou botão de ação"], ["Site / Landing page", "Botão de WhatsApp com rastreamento"]].map(([k, v]) => (
++                    <div key={k} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 5 }}>
++                      <span style={{ color: "#b8a832", minWidth: 130, fontWeight: 600 }}>{k}</span>
++                      <span style={{ color: "var(--muted)" }}>{v}</span>
++                    </div>
++                  ))}
++                </div>
++                <div style={{ background: "#1e0d0d", border: "1px solid #5a2a2a", borderRadius: 6, padding: "12px 14px" }}>
++                  <div style={{ fontSize: 11, fontWeight: 600, color: "#c46060", marginBottom: 6 }}>⚠ Limitação no Meta Ads</div>
++                  <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
++                    Campanhas Click-to-WhatsApp no Meta não permitem link customizado — o botão é nativo. Para rastrear esses leads, ative a <strong style={{ color: "var(--text)" }}>WhatsApp Business API</strong> em Integrações.
++                  </p>
++                </div>
++              </>) : (
++                <div style={{ fontSize: 13, color: "var(--muted)" }}>Configure seu número em <strong style={{ color: "var(--text)" }}>Configurações → WhatsApp</strong>.</div>
++              )}
++            </div>
++
++            {/* Como funciona */}
++            <div style={{ ...card, display: "flex", flexDirection: "column", gap: 10 }}>
++              <div style={secTitle}>Como funciona</div>
++              {[
++                { icon: "ti-ad", cor: "#25d366", title: "Link no anúncio", desc: "Google Ads, Stories do Meta ou site — cole o link rastreável" },
++                { icon: "ti-click", cor: "#25d366", title: "Lead clica", desc: "Redirecionado para o WhatsApp automaticamente" },
++                { icon: "ti-database", cor: "#25d366", title: "Lead registrado", desc: "Canal, campanha e UTMs salvos no Tom Tracking" },
++                { icon: "ti-brand-meta", cor: "#25d366", title: "CAPI disparado", desc: "Evento Lead enviado ao Meta ao mover para Em conversa" },
++              ].map((s, i) => (
++                <div key={i} style={{ display: "flex", gap: 10, padding: "10px 12px", background: "var(--s2)", borderRadius: 6, border: "1px solid var(--border)" }}>
++                  <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: s.cor, flexShrink: 0, marginTop: 2 }} />
++                  <div>
++                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{s.title}</div>
++                    <div style={{ fontSize: 11, color: "var(--sub)" }}>{s.desc}</div>
++                  </div>
++                </div>
++              ))}
++            </div>
+           </div>
+         </div>
+-      </main>
++      </div>
+     </div>
+   );
+ }
+-- 
+2.43.0
+
