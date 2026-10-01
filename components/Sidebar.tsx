@@ -30,6 +30,7 @@ const navItems: NavGroup[] = [
     items: [
       { icon: "ti-plug", label: "Integrações", href: "/integracoes" },
       { icon: "ti-webhook", label: "Webhooks", href: "/webhooks" },
+      { icon: "ti-star", label: "Planos", href: "/planos" },
       { icon: "ti-settings", label: "Configurações", href: "/configuracoes" },
     ],
   },

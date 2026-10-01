@@ -20,7 +20,7 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-const ROTAS_PUBLICAS = ["/login", "/r"];
+const ROTAS_PUBLICAS = ["/login", "/r", "/privacidade", "/onboarding"];
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

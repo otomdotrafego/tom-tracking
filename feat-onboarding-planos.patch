@@ -1,0 +1,538 @@
+From 9fc8d61412ebb61714c424b39a92d51d92d77cf7 Mon Sep 17 00:00:00 2001
+From: Tom Tracking <dev@tomtracking.com>
+Date: Thu, 1 Oct 2026 11:04:24 +0000
+Subject: [PATCH] feat: onboarding, planos, perfis no cadastro e Evolution API
+ estrutura completa
+
+---
+ app/login/page.tsx          |  11 +-
+ app/onboarding/page.tsx     | 268 ++++++++++++++++++++++++++++++++++++
+ app/planos/page.tsx         | 189 +++++++++++++++++++++++++
+ components/AuthProvider.tsx |   2 +-
+ components/Sidebar.tsx      |   1 +
+ 5 files changed, 469 insertions(+), 2 deletions(-)
+ create mode 100644 app/onboarding/page.tsx
+ create mode 100644 app/planos/page.tsx
+
+diff --git a/app/login/page.tsx b/app/login/page.tsx
+index 760d875..aa6bad3 100644
+--- a/app/login/page.tsx
++++ b/app/login/page.tsx
+@@ -51,10 +51,19 @@ export default function LoginPage() {
+           setErro(`Erro: ${error.message}`);
+         }
+       } else if (data.user) {
++        // Cria perfil do cliente automaticamente
++        await supabase.from("perfis").upsert({
++          id: data.user.id,
++          email: data.user.email,
++          nome: nome.trim(),
++          plano: "trial",
++          meta_verify_token: "tomtracking2024",
++        });
++
+         // Tenta login direto após cadastro
+         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha });
+         if (!loginError) {
+-          window.location.href = "/";
++          window.location.href = "/onboarding";
+         } else {
+           setSucesso("✓ Conta criada! Agora faça login.");
+           setModo("login");
+diff --git a/app/onboarding/page.tsx b/app/onboarding/page.tsx
+new file mode 100644
+index 0000000..2eff400
+--- /dev/null
++++ b/app/onboarding/page.tsx
+@@ -0,0 +1,268 @@
++"use client";
++import { useState, useEffect } from "react";
++import { useRouter } from "next/navigation";
++import { supabase } from "@/lib/supabase";
++import { useAuth } from "@/components/AuthProvider";
++
++const PASSOS = [
++  { id: 1, icon: "ti-rocket", titulo: "Bem-vindo ao Tom Tracking", sub: "Vamos configurar tudo em 3 passos rápidos" },
++  { id: 2, icon: "ti-brand-meta", titulo: "Conecte o Meta Ads", sub: "Pixel ID e Access Token para rastrear conversões" },
++  { id: 3, icon: "ti-brand-whatsapp", titulo: "Configure o WhatsApp", sub: "Número para gerar seu link rastreável" },
++  { id: 4, icon: "ti-check", titulo: "Tudo pronto!", sub: "Seu painel está configurado e pronto para usar" },
++];
++
++export default function OnboardingPage() {
++  const { user } = useAuth();
++  const router = useRouter();
++  const [passo, setPasso] = useState(1);
++  const [salvando, setSalvando] = useState(false);
++
++  // Passo 2 — Meta
++  const [pixelId, setPixelId] = useState("");
++  const [accessToken, setAccessToken] = useState("");
++  const [mostrarToken, setMostrarToken] = useState(false);
++
++  // Passo 3 — WhatsApp
++  const [whatsapp, setWhatsapp] = useState("");
++  const [link, setLink] = useState("");
++
++  useEffect(() => {
++    if (whatsapp && user) {
++      const origin = window.location.origin;
++      setLink(`${origin}/r?wa=${whatsapp}&tid=${user.id}&utm_source=facebook&utm_medium=cpc&utm_campaign=`);
++    } else {
++      setLink("");
++    }
++  }, [whatsapp, user]);
++
++  async function salvarMeta() {
++    if (!user) return;
++    setSalvando(true);
++    await supabase.from("perfis").upsert({
++      id: user.id,
++      meta_pixel_id: pixelId.trim() || null,
++      meta_access_token: accessToken.trim() || null,
++    });
++    setSalvando(false);
++    setPasso(3);
++  }
++
++  async function salvarWhatsApp() {
++    if (!user) return;
++    setSalvando(true);
++    await supabase.from("perfis").upsert({
++      id: user.id,
++      whatsapp_numero: whatsapp.trim() || null,
++    });
++    setSalvando(false);
++    setPasso(4);
++  }
++
++  function pularPasso() {
++    if (passo < 3) setPasso(passo + 1);
++    else setPasso(4);
++  }
++
++  const inputStyle: React.CSSProperties = {
++    background: "#1a1a2e", border: "1px solid #2a2a4a", borderRadius: 8,
++    padding: "11px 14px", fontSize: 14, color: "#fff", outline: "none",
++    width: "100%", fontFamily: "inherit",
++  };
++
++  return (
++    <div style={{
++      minHeight: "100vh", background: "var(--bg)",
++      display: "flex", alignItems: "center", justifyContent: "center",
++      padding: "24px 16px",
++    }}>
++      <div style={{ width: "100%", maxWidth: 480 }}>
++
++        {/* Logo */}
++        <div style={{ textAlign: "center", marginBottom: 32 }}>
++          <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.5px" }}>
++            <span style={{ color: "#4a9eca" }}>Tom</span> Tracking
++          </div>
++        </div>
++
++        {/* Progress */}
++        <div style={{ display: "flex", gap: 6, marginBottom: 32 }}>
++          {[2, 3, 4].map(p => (
++            <div key={p} style={{
++              flex: 1, height: 3, borderRadius: 2,
++              background: passo >= p ? "#4a9eca" : "var(--s3)",
++              transition: "background 0.3s",
++            }} />
++          ))}
++        </div>
++
++        {/* Card */}
++        <div style={{
++          background: "var(--s1)", border: "1px solid var(--border)",
++          borderRadius: 12, padding: "32px 28px",
++        }}>
++
++          {/* PASSO 1 — Boas-vindas */}
++          {passo === 1 && (
++            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, textAlign: "center" }}>
++              <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--s2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
++                <i className="ti ti-rocket" style={{ fontSize: 32, color: "#4a9eca" }} />
++              </div>
++              <div>
++                <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Bem-vindo ao Tom Tracking!</h1>
++                <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.6 }}>
++                  Vamos configurar tudo em menos de 2 minutos para você começar a rastrear suas conversões.
++                </p>
++              </div>
++              <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", marginTop: 8 }}>
++                {[
++                  { icon: "ti-brand-meta", text: "Conectar Pixel do Meta para disparar eventos CAPI" },
++                  { icon: "ti-brand-whatsapp", text: "Gerar link rastreável para seus anúncios" },
++                  { icon: "ti-chart-bar", text: "Painel com métricas em tempo real" },
++                ].map((s, i) => (
++                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--border)", textAlign: "left" }}>
++                    <i className={`ti ${s.icon}`} style={{ fontSize: 18, color: "#4a9eca", flexShrink: 0 }} />
++                    <span style={{ fontSize: 13, color: "var(--sub)" }}>{s.text}</span>
++                  </div>
++                ))}
++              </div>
++              <button onClick={() => setPasso(2)} style={{
++                width: "100%", background: "#4a9eca", border: "none", borderRadius: 8,
++                padding: "13px", fontSize: 14, fontWeight: 700, color: "#fff",
++                cursor: "pointer", fontFamily: "inherit", marginTop: 8,
++              }}>
++                Começar configuração →
++              </button>
++              <button onClick={() => router.push("/")} style={{ background: "none", border: "none", fontSize: 13, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit" }}>
++                Pular e configurar depois
++              </button>
++            </div>
++          )}
++
++          {/* PASSO 2 — Meta */}
++          {passo === 2 && (
++            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
++              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
++                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--s2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
++                  <i className="ti ti-brand-meta" style={{ fontSize: 22, color: "#1877f2" }} />
++                </div>
++                <div>
++                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>Meta Ads · CAPI</h2>
++                  <p style={{ fontSize: 12, color: "var(--sub)" }}>Passo 1 de 2 — opcional, pode configurar depois</p>
++                </div>
++              </div>
++
++              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
++                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
++                  <label style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Pixel ID</label>
++                  <input style={inputStyle} value={pixelId} onChange={e => setPixelId(e.target.value)} placeholder="Ex: 1386783446463518" />
++                </div>
++                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
++                  <label style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Access Token</label>
++                  <div style={{ display: "flex", gap: 8 }}>
++                    <input style={inputStyle} type={mostrarToken ? "text" : "password"} value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="EAAxxxxx..." />
++                    <button onClick={() => setMostrarToken(!mostrarToken)} style={{ background: "var(--s2)", border: "1px solid var(--border)", borderRadius: 8, padding: "11px 13px", cursor: "pointer", color: "var(--sub)", flexShrink: 0 }}>
++                      <i className={`ti ${mostrarToken ? "ti-eye-off" : "ti-eye"}`} style={{ fontSize: 15 }} />
++                    </button>
++                  </div>
++                  <span style={{ fontSize: 11, color: "var(--muted)" }}>Encontrado em Meta Business Suite → Usuários do sistema → Gerar token</span>
++                </div>
++              </div>
++
++              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
++                <button onClick={salvarMeta} disabled={salvando} style={{
++                  background: "#4a9eca", border: "none", borderRadius: 8, padding: "13px",
++                  fontSize: 14, fontWeight: 700, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontFamily: "inherit",
++                }}>
++                  {salvando ? "Salvando..." : "Salvar e continuar →"}
++                </button>
++                <button onClick={pularPasso} style={{ background: "none", border: "none", fontSize: 13, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit" }}>
++                  Pular este passo
++                </button>
++              </div>
++            </div>
++          )}
++
++          {/* PASSO 3 — WhatsApp */}
++          {passo === 3 && (
++            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
++              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
++                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--s2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
++                  <i className="ti ti-brand-whatsapp" style={{ fontSize: 22, color: "#25d366" }} />
++                </div>
++                <div>
++                  <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>WhatsApp</h2>
++                  <p style={{ fontSize: 12, color: "var(--sub)" }}>Passo 2 de 2 — gera seu link rastreável</p>
++                </div>
++              </div>
++
++              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
++                <label style={{ fontSize: 11, color: "var(--sub)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Número (com DDI)</label>
++                <input style={inputStyle} value={whatsapp} onChange={e => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="5516999999999" maxLength={15} />
++                <span style={{ fontSize: 11, color: "var(--muted)" }}>Só números. DDI + DDD + número. Ex: 5516999887766</span>
++              </div>
++
++              {link && (
++                <div style={{ background: "#0d1e14", border: "1px solid #2a5a38", borderRadius: 8, padding: "14px" }}>
++                  <div style={{ fontSize: 11, fontWeight: 600, color: "#4caf70", marginBottom: 8 }}>✓ Link rastreável gerado:</div>
++                  <div style={{ fontSize: 11, color: "#4caf70", fontFamily: "monospace", wordBreak: "break-all", lineHeight: 1.5 }}>{link}</div>
++                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8 }}>Cole este link no botão dos seus anúncios</div>
++                </div>
++              )}
++
++              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
++                <button onClick={salvarWhatsApp} disabled={salvando} style={{
++                  background: "#25d366", border: "none", borderRadius: 8, padding: "13px",
++                  fontSize: 14, fontWeight: 700, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontFamily: "inherit",
++                }}>
++                  {salvando ? "Salvando..." : "Salvar e finalizar →"}
++                </button>
++                <button onClick={pularPasso} style={{ background: "none", border: "none", fontSize: 13, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit" }}>
++                  Pular este passo
++                </button>
++              </div>
++            </div>
++          )}
++
++          {/* PASSO 4 — Concluído */}
++          {passo === 4 && (
++            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, textAlign: "center" }}>
++              <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#0d1e14", border: "2px solid #2a5a38", display: "flex", alignItems: "center", justifyContent: "center" }}>
++                <i className="ti ti-check" style={{ fontSize: 32, color: "#4caf70" }} />
++              </div>
++              <div>
++                <h2 style={{ fontSize: 20, fontWeight: 700, color: "#4caf70", marginBottom: 8 }}>Tudo configurado!</h2>
++                <p style={{ fontSize: 14, color: "var(--sub)", lineHeight: 1.6 }}>
++                  Seu Tom Tracking está pronto. Acesse o painel para acompanhar seus leads e conversões em tempo real.
++                </p>
++              </div>
++              <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", marginTop: 8 }}>
++                {[
++                  { icon: "ti-ad", text: "Cole o link rastreável nos seus anúncios" },
++                  { icon: "ti-users", text: "Leads chegam automaticamente no painel" },
++                  { icon: "ti-arrows-exchange", text: "Mova as etapas para disparar eventos no Meta" },
++                ].map((s, i) => (
++                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--s2)", borderRadius: 8, border: "1px solid var(--border)", textAlign: "left" }}>
++                    <i className={`ti ${s.icon}`} style={{ fontSize: 16, color: "#4caf70", flexShrink: 0 }} />
++                    <span style={{ fontSize: 13, color: "var(--sub)" }}>{s.text}</span>
++                  </div>
++                ))}
++              </div>
++              <button onClick={() => router.push("/")} style={{
++                width: "100%", background: "#4a9eca", border: "none", borderRadius: 8,
++                padding: "13px", fontSize: 14, fontWeight: 700, color: "#fff",
++                cursor: "pointer", fontFamily: "inherit", marginTop: 8,
++              }}>
++                Ir para o painel →
++              </button>
++            </div>
++          )}
++        </div>
++
++        {/* Footer */}
++        <p style={{ textAlign: "center", fontSize: 11, color: "var(--muted)", marginTop: 20 }}>
++          Você pode alterar qualquer configuração depois em <strong>Configurações</strong>
++        </p>
++      </div>
++    </div>
++  );
++}
+diff --git a/app/planos/page.tsx b/app/planos/page.tsx
+new file mode 100644
+index 0000000..aeb9f74
+--- /dev/null
++++ b/app/planos/page.tsx
+@@ -0,0 +1,189 @@
++"use client";
++import { useEffect, useState } from "react";
++import Sidebar from "@/components/Sidebar";
++import { supabase } from "@/lib/supabase";
++import { useAuth } from "@/components/AuthProvider";
++
++function useIsMobile() {
++  const [m, setM] = useState(false);
++  useEffect(() => { const c = () => setM(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
++  return m;
++}
++
++const PLANOS = [
++  {
++    id: "trial",
++    nome: "Trial",
++    preco: "Grátis",
++    periodo: "7 dias",
++    cor: "#888",
++    descricao: "Para testar a plataforma",
++    recursos: [
++      { ok: true, texto: "Até 50 leads" },
++      { ok: true, texto: "1 número de WhatsApp" },
++      { ok: true, texto: "Link rastreável" },
++      { ok: true, texto: "Dashboard e relatórios" },
++      { ok: false, texto: "Meta CAPI" },
++      { ok: false, texto: "Evolution API (Click-to-WhatsApp)" },
++      { ok: false, texto: "Integrações CRM" },
++      { ok: false, texto: "Suporte prioritário" },
++    ],
++  },
++  {
++    id: "rastreamento",
++    nome: "Rastreamento",
++    preco: "R$ 97",
++    periodo: "/mês",
++    cor: "#4a9eca",
++    destaque: false,
++    descricao: "Para gestores de tráfego",
++    recursos: [
++      { ok: true, texto: "Leads ilimitados" },
++      { ok: true, texto: "1 número de WhatsApp" },
++      { ok: true, texto: "Link rastreável" },
++      { ok: true, texto: "Dashboard e relatórios" },
++      { ok: true, texto: "Meta CAPI (Lead, Schedule, Purchase)" },
++      { ok: false, texto: "Evolution API (Click-to-WhatsApp)" },
++      { ok: false, texto: "Integrações CRM" },
++      { ok: false, texto: "Suporte prioritário" },
++    ],
++  },
++  {
++    id: "completo",
++    nome: "Completo",
++    preco: "R$ 197",
++    periodo: "/mês",
++    cor: "#4caf70",
++    destaque: true,
++    descricao: "Rastreamento + CRM Tom Leads",
++    recursos: [
++      { ok: true, texto: "Leads ilimitados" },
++      { ok: true, texto: "Múltiplos números de WhatsApp" },
++      { ok: true, texto: "Link rastreável" },
++      { ok: true, texto: "Dashboard e relatórios" },
++      { ok: true, texto: "Meta CAPI (Lead, Schedule, Purchase)" },
++      { ok: true, texto: "Evolution API (Click-to-WhatsApp)" },
++      { ok: true, texto: "Integrações CRM + Tom Leads nativo" },
++      { ok: true, texto: "Suporte prioritário" },
++    ],
++  },
++];
++
++export default function PlanosPage() {
++  const { user } = useAuth();
++  const isMobile = useIsMobile();
++  const [planoAtual, setPlanoAtual] = useState("trial");
++  const [loading, setLoading] = useState(true);
++
++  useEffect(() => {
++    if (!user) return;
++    supabase.from("perfis").select("plano").eq("id", user.id).single()
++      .then(({ data }) => {
++        if (data) setPlanoAtual((data as any).plano || "trial");
++        setLoading(false);
++      });
++  }, [user]);
++
++  const card: React.CSSProperties = { background: "var(--s1)", border: "1px solid var(--border)", borderRadius: 8, padding: isMobile ? "14px 16px" : "18px 22px" };
++
++  if (loading) return <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}><Sidebar /><div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "var(--muted)", fontSize: 13 }}>Carregando...</span></div></div>;
++
++  return (
++    <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
++      <Sidebar />
++      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
++
++        {/* Header */}
++        <div style={{ padding: isMobile ? "14px 16px" : "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--s1)" }}>
++          <h1 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 2 }}>Planos</h1>
++          <p style={{ fontSize: 12, color: "var(--sub)" }}>
++            Plano atual: <strong style={{ color: "var(--text)" }}>{PLANOS.find(p => p.id === planoAtual)?.nome || planoAtual}</strong>
++          </p>
++        </div>
++
++        <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "14px 16px" : "24px" }}>
++
++          {/* Cards de planos */}
++          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, maxWidth: 1000, marginBottom: 32 }}>
++            {PLANOS.map(plano => {
++              const ativo = planoAtual === plano.id;
++              return (
++                <div key={plano.id} style={{
++                  background: "var(--s1)",
++                  border: `2px solid ${ativo ? plano.cor : plano.destaque ? plano.cor + "44" : "var(--border)"}`,
++                  borderRadius: 10,
++                  padding: "24px 20px",
++                  display: "flex", flexDirection: "column", gap: 16,
++                  position: "relative",
++                  boxShadow: plano.destaque ? `0 0 24px ${plano.cor}22` : "none",
++                }}>
++                  {plano.destaque && (
++                    <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: plano.cor, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>
++                      ⭐ Mais popular
++                    </div>
++                  )}
++                  {ativo && (
++                    <div style={{ position: "absolute", top: -12, right: 16, background: plano.cor, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>
++                      Plano atual
++                    </div>
++                  )}
++
++                  <div>
++                    <div style={{ fontSize: 13, fontWeight: 700, color: plano.cor, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{plano.nome}</div>
++                    <div style={{ fontSize: 11, color: "var(--sub)" }}>{plano.descricao}</div>
++                  </div>
++
++                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
++                    <span style={{ fontSize: 32, fontWeight: 800, color: "var(--text)" }}>{plano.preco}</span>
++                    <span style={{ fontSize: 13, color: "var(--muted)" }}>{plano.periodo}</span>
++                  </div>
++
++                  <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
++                    {plano.recursos.map((r, i) => (
++                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: r.ok ? "var(--text)" : "var(--muted)" }}>
++                        <i className={`ti ${r.ok ? "ti-check" : "ti-x"}`} style={{ fontSize: 13, color: r.ok ? plano.cor : "var(--muted)", flexShrink: 0 }} />
++                        {r.texto}
++                      </div>
++                    ))}
++                  </div>
++
++                  <button
++                    disabled={ativo}
++                    onClick={() => window.open("https://wa.me/5516997009020?text=Quero+fazer+upgrade+para+o+plano+" + plano.nome, "_blank")}
++                    style={{
++                      background: ativo ? "var(--s3)" : plano.cor,
++                      border: "none", borderRadius: 7, padding: "11px",
++                      fontSize: 13, fontWeight: 700,
++                      color: ativo ? "var(--muted)" : "#fff",
++                      cursor: ativo ? "not-allowed" : "pointer",
++                      fontFamily: "inherit", marginTop: "auto",
++                    }}>
++                    {ativo ? "Plano atual" : `Assinar ${plano.nome}`}
++                  </button>
++                </div>
++              );
++            })}
++          </div>
++
++          {/* FAQ */}
++          <div style={{ maxWidth: 1000 }}>
++            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 14 }}>Dúvidas frequentes</div>
++            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
++              {[
++                { p: "Posso cancelar a qualquer momento?", r: "Sim, sem multa ou fidelidade. O plano fica ativo até o fim do período pago." },
++                { p: "O que é o plano Trial?", r: "7 dias grátis para testar a plataforma com até 50 leads. Nenhum cartão necessário." },
++                { p: "O que é a Evolution API?", r: "Integração com WhatsApp via QR code para rastrear leads de campanhas Click-to-WhatsApp do Meta automaticamente." },
++                { p: "Posso usar meu próprio Pixel do Meta?", r: "Sim! Cada cliente usa seu próprio Pixel ID e Access Token. Seus dados ficam isolados." },
++              ].map((faq, i) => (
++                <div key={i} style={{ ...card, display: "flex", flexDirection: "column", gap: 6 }}>
++                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{faq.p}</div>
++                  <div style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6 }}>{faq.r}</div>
++                </div>
++              ))}
++            </div>
++          </div>
++        </div>
++      </div>
++    </div>
++  );
++}
+diff --git a/components/AuthProvider.tsx b/components/AuthProvider.tsx
+index 16a5a33..fba6fa3 100644
+--- a/components/AuthProvider.tsx
++++ b/components/AuthProvider.tsx
+@@ -20,7 +20,7 @@ export function useAuth() {
+   return useContext(AuthContext);
+ }
+ 
+-const ROTAS_PUBLICAS = ["/login", "/r"];
++const ROTAS_PUBLICAS = ["/login", "/r", "/privacidade", "/onboarding"];
+ 
+ export default function AuthProvider({ children }: { children: React.ReactNode }) {
+   const [user, setUser] = useState<User | null>(null);
+diff --git a/components/Sidebar.tsx b/components/Sidebar.tsx
+index 3ca1f39..7fc3ad3 100644
+--- a/components/Sidebar.tsx
++++ b/components/Sidebar.tsx
+@@ -30,6 +30,7 @@ const navItems: NavGroup[] = [
+     items: [
+       { icon: "ti-plug", label: "Integrações", href: "/integracoes" },
+       { icon: "ti-webhook", label: "Webhooks", href: "/webhooks" },
++      { icon: "ti-star", label: "Planos", href: "/planos" },
+       { icon: "ti-settings", label: "Configurações", href: "/configuracoes" },
+     ],
+   },
+-- 
+2.43.0
+

@@ -51,10 +51,19 @@ export default function LoginPage() {
           setErro(`Erro: ${error.message}`);
         }
       } else if (data.user) {
+        // Cria perfil do cliente automaticamente
+        await supabase.from("perfis").upsert({
+          id: data.user.id,
+          email: data.user.email,
+          nome: nome.trim(),
+          plano: "trial",
+          meta_verify_token: "tomtracking2024",
+        });
+
         // Tenta login direto após cadastro
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha });
         if (!loginError) {
-          window.location.href = "/";
+          window.location.href = "/onboarding";
         } else {
           setSucesso("✓ Conta criada! Agora faça login.");
           setModo("login");
